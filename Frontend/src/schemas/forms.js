@@ -1,0 +1,6 @@
+import { z } from "zod";
+export const loginSchema = z.object({ email: z.string().trim().email("Enter a valid email address."), password: z.string().min(1, "Enter your password.").max(128) });
+export const registerSchema = z.object({ name: z.string().trim().min(2, "Enter your name.").max(80), email: z.string().trim().email("Enter a valid email address."), password: z.string().min(8, "Use at least 8 characters.").max(128), confirmPassword: z.string() }).refine((data) => data.password === data.confirmPassword, { path: ["confirmPassword"], message: "Passwords do not match." });
+export const forgotPasswordSchema = z.object({ email: z.string().trim().email("Enter a valid email address.") });
+export const resetPasswordSchema = z.object({ token: z.string().min(32), new_password: z.string().min(8, "Use at least 8 characters.").max(128), confirm_password: z.string() }).refine((data) => data.new_password === data.confirm_password, { path: ["confirm_password"], message: "Passwords do not match." }).transform(({confirm_password,...data})=>data);
+export const contactSchema = z.object({ name: z.string().trim().min(2), email: z.string().trim().email(), topic: z.string(), message: z.string().trim().min(10).max(3000) });

@@ -1,0 +1,35 @@
+{
+    "name": "ai-animation-studio-frontend",
+    "private": true,
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@hookform/resolvers": "latest",
+        "@react-three/drei": "latest",
+        "@react-three/fiber": "latest",
+        "@reduxjs/toolkit": "latest",
+        "axios": "latest",
+        "framer-motion": "latest",
+        "lucide-react": "latest",
+        "react": "latest",
+        "react-dom": "latest",
+        "react-hook-form": "latest",
+        "react-redux": "latest",
+        "react-router-dom": "latest",
+        "three": "latest",
+        "zod": "latest",
+        "zustand": "latest"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "latest",
+        "@vitejs/plugin-react": "^6.2.1",
+        "prettier": "^3.9.10",
+        "tailwindcss": "latest",
+        "vite": "^8.3.5"
+    }
+}
