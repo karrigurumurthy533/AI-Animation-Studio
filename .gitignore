@@ -1,0 +1,27 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build files
+dist/
+build/
+
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Blender temporary files
+*.blend1
+*.blend2
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
