@@ -12,6 +12,7 @@ from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.responses import ApiException, api_exception_handler, http_exception_handler, validation_exception_handler
 from app.db.session import close_resources, connect_resources
+from app.services.queue import close_queue
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("animation-studio-api")
@@ -24,13 +25,14 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        await close_queue()
         await close_resources(app)
 
 
 app = FastAPI(
     title=settings.app_name,
     version="1.0.0",
-    description="Authentication and account API for AI Animation Studio.",
+    description="AI Animation Studio account, production workflow, asset, and Blender APIs.",
     openapi_url=f"{settings.api_v1_prefix}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -40,7 +42,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
 )
 app.add_exception_handler(ApiException, api_exception_handler)

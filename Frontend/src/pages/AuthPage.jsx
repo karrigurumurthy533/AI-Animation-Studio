@@ -32,6 +32,7 @@ export default function AuthPage({ register = false }) {
         <Eyebrow>{register ? "YOUR STUDIO BEGINS" : "WELCOME BACK"}</Eyebrow>
         <h1>{register ? "Create your account" : "Step back into the studio."}</h1>
         <p>{register ? "Set up your workspace and begin building." : "Your next frame is right where you left it."}</p>
+        {location.state?.notice && <p className="auth-notice" role="status">{location.state.notice}</p>}
         <form onSubmit={submit} noValidate>
           {register && <label>Full name<input {...field("name")} autoComplete="name" placeholder="Your name" aria-invalid={!!errors.name}/>{errors.name && <small className="field-error">{errors.name.message}</small>}</label>}
           <label>Email address<input {...field("email")} type="email" autoComplete="email" placeholder="you@example.com" aria-invalid={!!errors.email}/>{errors.email && <small className="field-error">{errors.email.message}</small>}</label>

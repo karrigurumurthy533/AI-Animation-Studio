@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Activity,
   ArrowDownToLine,
@@ -39,8 +40,10 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import { assets, features, fmt, projects, stages } from "../data";
+import { stages } from "../data";
 import { useStudioStore } from "../store/useStudioStore";
+import { useAuthStore } from "../store/useAuthStore";
+import { assetsApi, exportsApi, jobsApi, productionApi, usersApi } from "../services/api";
 const CharacterViewport = lazy(
   () => import("../components/CharacterViewport.jsx"),
 );
@@ -55,11 +58,12 @@ import {
 } from "../components/ui";
 const actionMessage =
   "This control is a demo. Processing services are not connected.";
-function Action({ children, onClick, secondary = false }) {
+function Action({ children, onClick, secondary = false, disabled = false }) {
   return (
     <button
       className={`button ${secondary ? "outline" : ""}`}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
       <ArrowUpRight size={14} />
@@ -138,19 +142,32 @@ function ProjectTile({ project }) {
     </button>
   );
 }
+async function ensureCharacter(projectId, name = "Character") {
+  if (!projectId) throw new Error("Select a project first.");
+  const existing = await productionApi.characters(projectId);
+  if (existing.data.length) return existing.data[0];
+  const created = await productionApi.createCharacter(projectId, { name, characterType: "custom", appearanceDNA: {} });
+  return created.data;
+}
 export function Dashboard() {
   const notify = useStudioStore((s) => s.notify);
   const active = useStudioStore((s) => s.activeProject);
+  const user = useAuthStore((s) => s.user);
+  const projects = useStudioStore((s) => s.projects);
+  const loadProjects = useStudioStore((s) => s.loadProjects);
+  const projectsStatus = useStudioStore((s) => s.projectsStatus);
+  const navigate = useNavigate();
+  useEffect(() => { loadProjects().catch((error) => notify(error.message, "error")); }, [loadProjects, notify]);
   return (
     <>
       <PageTitle
         eyebrow="MONDAY, NOVEMBER 3, 2026"
-        title="Good morning, Vedhas."
+        title={`Good morning, ${(user?.name || "creator").split(/\s+/)[0]}.`}
         description="Your production floor is ready. Pick up where the frame left off."
         action={
           <Action
             onClick={() =>
-              notify("Project creation is a demo. No project was created.")
+              navigate("/studio/projects?new=1")
             }
           >
             {" "}
@@ -162,8 +179,8 @@ export function Dashboard() {
       <div className="stats-grid">
         <Stat
           label="ACTIVE PROJECTS"
-          value="04"
-          delta="2 currently in production"
+          value={String(projects.filter((project) => project.status === "active").length).padStart(2, "0")}
+          delta="Projects in your account"
         />
         <Stat
           label="ASSETS CREATED"
@@ -184,6 +201,8 @@ export function Dashboard() {
             {projects.slice(0, 3).map((p) => (
               <ProjectTile project={p} key={p.id} />
             ))}
+            {projectsStatus === "loading" && <p>Loading projects...</p>}
+            {projectsStatus === "ready" && projects.length === 0 && <p>Create a project to start your production workflow.</p>}
           </div>
           <SectionTitle
             eyebrow="PRODUCTION OVERVIEW"
@@ -279,68 +298,106 @@ export function Dashboard() {
 export function Projects() {
   const [filter, setFilter] = useState("All");
   const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showCreate, setShowCreate] = useState(searchParams.get("new") === "1");
+  const [name, setName] = useState("");
+  const [projectType, setProjectType] = useState("Character film");
+  const [saving, setSaving] = useState(false);
   const notify = useStudioStore((s) => s.notify);
-  const visible = projects.filter(
-    (p) =>
-      (filter === "All" || p.stage === filter) &&
-      p.name.toLowerCase().includes(query.toLowerCase()),
+  const projects = useStudioStore((s) => s.projects);
+  const projectsStatus = useStudioStore((s) => s.projectsStatus);
+  const projectsError = useStudioStore((s) => s.projectsError);
+  const loadProjects = useStudioStore((s) => s.loadProjects);
+  const createProject = useStudioStore((s) => s.createProject);
+  const visible = projects.filter((p) =>
+    (filter === "All" || p.stage === filter) && p.name.toLowerCase().includes(query.toLowerCase()),
   );
+  useEffect(() => { loadProjects().catch((error) => notify(error.message, "error")); }, [loadProjects, notify]);
+  const submit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await createProject({ name: name.trim(), projectType });
+      setName("");
+      setShowCreate(false);
+      setSearchParams({}, { replace: true });
+      notify("Project created.", "success");
+    } catch (error) {
+      notify(error.message || "Could not create the project.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <>
       <PageTitle
         eyebrow="YOUR PRODUCTION FLOOR"
         title="Projects"
         description="Every world you're building, all in one place."
-        action={
-          <Action
-            onClick={() =>
-              notify("Project creation is a demo. No project was created.")
-            }
-          >
-            <Plus size={15} /> New project
-          </Action>
-        }
+        action={<Action onClick={() => setShowCreate((value) => !value)}><Plus size={15} /> New project</Action>}
       />
+      {showCreate && <form className="project-create-form" onSubmit={submit}>
+        <label className="field-label">Project name<input autoFocus required minLength={2} maxLength={120} value={name} onChange={(event) => setName(event.target.value)} placeholder="Name your project" /></label>
+        <label className="field-label">Project type<select value={projectType} onChange={(event) => setProjectType(event.target.value)}><option>Character film</option><option>Environment study</option><option>World building</option><option>Character exploration</option></select></label>
+        <button className="button" disabled={saving || name.trim().length < 2}>{saving ? "Creating..." : "Create project"}<ArrowUpRight size={14} /></button>
+      </form>}
       <div className="toolbar">
         <div className="filter-tabs">
-          {["All", "Animation", "Materials", "Rigging"].map((x) => (
-            <button
-              className={filter === x ? "selected" : ""}
-              key={x}
-              onClick={() => setFilter(x)}
-            >
-              {x}
-            </button>
-          ))}
+          {["All", "Animation", "Materials", "Rigging"].map((x) => <button className={filter === x ? "selected" : ""} key={x} onClick={() => setFilter(x)}>{x}</button>)}
         </div>
-        <label className="local-search">
-          <Search size={14} />
-          <input
-            placeholder="Find a project..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </label>
+        <label className="local-search"><Search size={14} /><input placeholder="Find a project..." value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       </div>
-      {visible.length ? (
-        <div className="project-grid project-grid-wide">
-          {visible.map((p) => (
-            <ProjectTile project={p} key={p.id} />
-          ))}
-        </div>
+      {projectsStatus === "loading" ? <p>Loading projects...</p> : projectsStatus === "error" ? <EmptyState title="Projects could not be loaded" description={projectsError || "Check that the backend is running, then retry."} action={<button className="button outline" onClick={() => loadProjects().catch((error) => notify(error.message, "error"))}>Retry<ArrowUpRight size={14}/></button>} /> : visible.length ? (
+        <div className="project-grid project-grid-wide">{visible.map((p) => <ProjectTile project={p} key={p.id} />)}</div>
       ) : (
-        <EmptyState
-          title="No projects match"
-          description="Try another search or filter."
-        />
+        <EmptyState title={query || filter !== "All" ? "No projects match" : "No projects yet"} description={query || filter !== "All" ? "Try another search or filter." : "Create your first project to begin."} />
       )}
-      <DemoNotice />
     </>
   );
 }
 export function CharacterLab() {
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
   const [tab, setTab] = useState("Reference");
+  const [references, setReferences] = useState([]);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setReferences([]);
+    if (!activeProject) return;
+    Promise.all([productionApi.characters(activeProject), assetsApi.list(activeProject)])
+      .then(([characters, assets]) => {
+        const savedIds = characters.data[0]?.referenceImages || [];
+        const images = assets.data.filter((asset) => asset.assetType === "image");
+        setReferences(savedIds.length ? images.filter((asset) => savedIds.includes(asset.id)) : images);
+      })
+      .catch((error) => notify(error.message, "error"));
+  }, [activeProject, notify]);
+  const uploadReference = async (event) => {
+    const file = event.target.files?.[0]; if (!file) return;
+    setBusy(true);
+    try {
+      const response = await assetsApi.upload(activeProject, file);
+      const character = await ensureCharacter(activeProject, "Studio character");
+      const next = [...new Set([...(character.referenceImages || []), ...references.map((asset) => asset.id), response.data.id])];
+      await productionApi.updateCharacter(character.id, { referenceImages: next });
+      setReferences((current) => [response.data, ...current]);
+      notify("Reference image uploaded and linked to the character.", "success");
+    }
+    catch (error) { notify(error.message || "Reference upload failed.", "error"); }
+    finally { event.target.value = ""; setBusy(false); }
+  };
+  const analyzeReference = async () => {
+    if (!activeProject || !references[0]) return notify("Upload a reference image first.", "error");
+    try { const response = await productionApi.analyze(activeProject, { assetId: references[0].id }); notify(`Image analysis queued: ${response.data.jobId}`, "success"); }
+    catch (error) { notify(error.message || "Could not queue image analysis.", "error"); }
+  };
+  const generateModel = async () => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    setBusy(true);
+    try { const character = await ensureCharacter(activeProject, "Studio character"); const response = await productionApi.generateModel(activeProject, { characterId: character.id, referenceAssetIds: references.map((asset) => asset.id) }); notify(`Model generation queued: ${response.data.jobId}`, "success"); }
+    catch (error) { notify(error.message || "Could not queue model generation.", "error"); }
+    finally { setBusy(false); }
+  };
   return (
     <>
       <PageTitle
@@ -348,18 +405,12 @@ export function CharacterLab() {
         title="Shape a character."
         description="Move from reference to editable model while keeping the character's defining features in view."
         action={
-          <Action
-            onClick={() =>
-              notify(
-                "This demo cannot generate a 3D model. Your reference remains unchanged.",
-              )
-            }
-          >
+          <Action onClick={generateModel}>
             <Sparkles size={15} /> Generate model
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project before uploading references or generating a model.</DemoNotice>}
       <div className="lab-layout">
         <aside className="lab-sidebar">
           <Eyebrow>PRODUCTION STAGES</Eyebrow>
@@ -370,16 +421,13 @@ export function CharacterLab() {
               {i === 0 && <small>ACTIVE</small>}
             </div>
           ))}
-          <button
-            className="upload-zone"
-            onClick={() =>
-              notify("Reference upload is not connected in this demo.")
-            }
-          >
+          <label className="upload-zone">
             <Upload size={18} />
-            <b>Add reference image</b>
+            <b>{busy ? "Uploading..." : references[0]?.fileName || "Add reference image"}</b>
             <span>PNG, JPG - up to 20 MB</span>
-          </button>
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy || !activeProject} onChange={uploadReference} />
+          </label>
+          <Button variant="outline" onClick={analyzeReference} disabled={!references.length}>Analyze reference</Button>
         </aside>
         <section className="lab-main">
           <div className="lab-toolbar">
@@ -507,7 +555,27 @@ function DnaPanel() {
 }
 export function MeshLab() {
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
   const [mode, setMode] = useState("Solid");
+  const [models, setModels] = useState([]);
+  const [modelId, setModelId] = useState("");
+  const [report, setReport] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const refreshModels = () => activeProject ? assetsApi.models(activeProject).then((response) => { setModels(response.data); setModelId((current) => current || response.data[0]?.id || ""); }) : (setModels([]), setModelId(""), Promise.resolve([]));
+  useEffect(() => { setModelId(""); refreshModels().catch((error) => notify(error.message, "error")); }, [activeProject]);
+  const meshOperation = async (operation) => {
+    if (!modelId) return notify("Generate or upload a model first.", "error");
+    setBusy(true);
+    try {
+      const response = await productionApi.mesh(modelId, operation, {});
+      notify(`${operation} queued: ${response.data.jobId}`, "success");
+      if (operation === "validate") {
+        const result = await productionApi.meshReport(modelId);
+        setReport(result.data);
+      }
+    } catch (error) { notify(error.message || `Could not start ${operation}.`, "error"); }
+    finally { setBusy(false); }
+  };
   return (
     <>
       <PageTitle
@@ -515,16 +583,12 @@ export function MeshLab() {
         title="Geometry, in focus."
         description="Inspect topology and prepare a clean mesh for materials, rigging and animation."
         action={
-          <Action
-            onClick={() =>
-              notify("Mesh validation is a preview. No processing was started.")
-            }
-          >
+          <Action onClick={() => meshOperation("validate")}>
             <ShieldCheck size={15} /> Validate mesh
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project with a generated or uploaded model to edit its mesh.</DemoNotice>}
       <div className="editor-layout">
         <aside className="editor-tools">
           <Eyebrow>TOOLS</Eyebrow>
@@ -536,7 +600,7 @@ export function MeshLab() {
           ].map(([Icon, x]) => (
             <button
               key={x}
-              onClick={() => notify(`${x} tool is preview-only.`)}
+              onClick={() => meshOperation(x === "Retopology" ? "retopology" : x === "Repair" ? "repair" : "validate")}
             >
               <Icon size={16} />
               {x}
@@ -545,6 +609,7 @@ export function MeshLab() {
         </aside>
         <section className="editor-viewport">
           <div className="viewport-toolbar">
+            <label className="field-label">MODEL <select value={modelId} onChange={(event) => setModelId(event.target.value)}><option value="">Select model</option>{models.map((model) => <option value={model.id} key={model.id}>{model.fileName}</option>)}</select></label>
             <span>
               <Grid2X2 size={14} /> VIEWPORT
             </span>
@@ -582,11 +647,11 @@ export function MeshLab() {
           <Eyebrow>MESH REPORT</Eyebrow>
           <h3>Nomad / v04</h3>
           {[
-            ["Vertices", "68,420"],
-            ["Faces", "136,812"],
-            ["Watertight", "Yes"],
-            ["Manifold edges", "0"],
-            ["UV coverage", "94%"],
+            ["Meshes", report?.meshCount ?? "—"],
+            ["Vertices", report?.vertices?.toLocaleString() ?? "—"],
+            ["Polygons", report?.polygons?.toLocaleString() ?? "—"],
+            ["Non-manifold edges", report?.nonManifoldEdges ?? "Run validation"],
+            ["Last operation", report?.operation ?? "—"],
           ].map(([a, b]) => (
             <div className="property-row" key={a}>
               <span>{a}</span>
@@ -601,9 +666,8 @@ export function MeshLab() {
           </label>
           <Button
             variant="outline"
-            onClick={() =>
-              notify("Mesh repair and optimization are not connected.")
-            }
+            onClick={() => meshOperation("optimize")}
+            disabled={busy || !modelId}
           >
             Optimize mesh
           </Button>
@@ -617,6 +681,36 @@ export function MaterialsLab() {
   const [metal, setMetal] = useState(18);
   const [color, setColor] = useState("#9c5547");
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const [characterId, setCharacterId] = useState("");
+  const [materialId, setMaterialId] = useState("");
+  const [materialName, setMaterialName] = useState("Weathered clay");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    setCharacterId(""); setMaterialId("");
+    if (activeProject) productionApi.characters(activeProject).then((response) => { const id = response.data[0]?.id; if (id) { setCharacterId(id); productionApi.materials(id).then((materials) => { const first = materials.data[0]; if (first) { setMaterialId(first.id); setMaterialName(first.name || "Material"); setColor(first.baseColor || "#9c5547"); setRough(Math.round((first.roughness ?? 0.42) * 100)); setMetal(Math.round((first.metallic ?? 0.18) * 100)); } }).catch((error) => notify(error.message, "error")); } }).catch((error) => notify(error.message, "error"));
+  }, [activeProject, notify]);
+  const saveMaterial = async () => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    setSaving(true);
+    try {
+      const character = characterId ? { id: characterId } : await ensureCharacter(activeProject);
+      const payload = { name: materialName, materialType: "surface", baseColor: color, roughness: rough / 100, metallic: metal / 100 };
+      const response = materialId ? await productionApi.updateMaterial(materialId, payload) : await productionApi.createMaterial(character.id, payload);
+      setCharacterId(character.id); setMaterialId(response.data.id); notify("Material saved.", "success");
+    } catch (error) { notify(error.message || "Could not save material.", "error"); }
+    finally { setSaving(false); }
+  };
+  const applyMaterial = async () => {
+    if (!materialId) return notify("Save the material before applying it.", "error");
+    try { await productionApi.applyMaterial(materialId); notify("Material applied.", "success"); }
+    catch (error) { notify(error.message || "Could not apply material.", "error"); }
+  };
+  const generateTexture = async () => {
+    if (!materialId) return notify("Save the material before generating a texture.", "error");
+    try { const response = await productionApi.generateTexture(materialId, { prompt: materialName, baseColor: color }); notify(`Texture generation queued: ${response.data.jobId}`, "success"); }
+    catch (error) { notify(error.message || "Could not generate a texture.", "error"); }
+  };
   return (
     <>
       <PageTitle
@@ -624,16 +718,12 @@ export function MaterialsLab() {
         title="Give it a surface."
         description="Tune surface properties and review a material preview before it moves into the scene."
         action={
-          <Action
-            onClick={() =>
-              notify("Material settings saved in this demo session.")
-            }
-          >
+          <Action onClick={saveMaterial}>
             <Save size={15} /> Save material
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project before saving materials.</DemoNotice>}
       <div className="materials-layout">
         <section
           className="material-preview"
@@ -651,13 +741,13 @@ export function MaterialsLab() {
             <span>
               <Palette size={16} /> MATERIAL / 01
             </span>
-            <TinyAction onClick={() => notify("Material menu is a preview.")}>
+            <TinyAction onClick={generateTexture}>
               ...
             </TinyAction>
           </div>
           <label className="field-label">
             Material name
-            <input defaultValue="Nomad - Weathered clay" />
+            <input value={materialName} onChange={(event) => setMaterialName(event.target.value)} />
           </label>
           <div className="color-setting">
             <label>Base color</label>
@@ -676,7 +766,7 @@ export function MaterialsLab() {
             {["Base color", "Normal", "Roughness"].map((x, i) => (
               <button
                 key={x}
-                onClick={() => notify("Texture upload is not connected.")}
+                onClick={generateTexture}
               >
                 <span>
                   {i === 0 ? <Image size={15} /> : <Layers3 size={15} />} {x}
@@ -685,12 +775,7 @@ export function MaterialsLab() {
               </button>
             ))}
           </div>
-          <Button
-            variant="outline"
-            onClick={() =>
-              notify("Applying materials to the model is not connected.")
-            }
-          >
+          <Button variant="outline" onClick={applyMaterial} disabled={saving}>
             Apply to model
           </Button>
         </aside>
@@ -753,6 +838,18 @@ function Range({ label, value, onChange }) {
 export function RiggingLab() {
   const notify = useStudioStore((s) => s.notify);
   const [showBones, setShowBones] = useState(true);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const [busy, setBusy] = useState(false);
+  const runRigging = async (operation) => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    setBusy(true);
+    try {
+      const character = await ensureCharacter(activeProject);
+      const response = operation === "generate" ? await productionApi.generateRig(character.id, { type: "humanoid" }) : await productionApi.riggingOperation(character.id, operation, {});
+      notify(operation === "generate" ? `Rig generation queued: ${response.data.jobId}` : `Rig ${operation} queued: ${response.data.jobId}`, "success");
+    } catch (error) { notify(error.message || `Could not ${operation} rig.`, "error"); }
+    finally { setBusy(false); }
+  };
   return (
     <>
       <PageTitle
@@ -760,16 +857,12 @@ export function RiggingLab() {
         title="Ready for a performance."
         description="Inspect the character skeleton and review rig settings before animation."
         action={
-          <Action
-            onClick={() =>
-              notify("Rig generation is not connected. No rig was created.")
-            }
-          >
+          <Action onClick={() => runRigging("generate")}>
             <Sparkles size={15} /> Generate rig
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project before generating or validating a rig.</DemoNotice>}
       <div className="rig-layout">
         <section className="rig-viewport">
           <div className="viewport-toolbar">
@@ -839,7 +932,8 @@ export function RiggingLab() {
           <Progress value={94} />
           <Button
             variant="outline"
-            onClick={() => notify("Rig validation is not connected.")}
+            onClick={() => runRigging("validate")}
+            disabled={busy || !activeProject}
           >
             Validate rig
           </Button>
@@ -852,6 +946,21 @@ export function AnimationLab() {
   const [playing, setPlaying] = useState(false);
   const [frame, setFrame] = useState(12);
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const [animationName, setAnimationName] = useState("Walk cycle");
+  const [busy, setBusy] = useState(false);
+  const generateMotion = async () => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    setBusy(true);
+    try { const character = await ensureCharacter(activeProject); const response = await productionApi.generateAnimation(character.id, { name: animationName, duration: 4, frameRate: 24 }); notify(`Motion generation queued: ${response.data.jobId}`, "success"); }
+    catch (error) { notify(error.message || "Could not queue motion generation.", "error"); }
+    finally { setBusy(false); }
+  };
+  const saveAnimation = async () => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    try { const character = await ensureCharacter(activeProject); await productionApi.createAnimation(character.id, { name: animationName, animationType: "custom", duration: 4, frameRate: 24, configuration: { frame } }); notify("Animation saved.", "success"); }
+    catch (error) { notify(error.message || "Could not save animation.", "error"); }
+  };
   return (
     <>
       <PageTitle
@@ -859,23 +968,17 @@ export function AnimationLab() {
         title="Direct the movement."
         description="Review a motion preview, adjust a demo timeline and prepare a performance."
         action={
-          <Action
-            onClick={() =>
-              notify(
-                "Motion generation is unavailable in this frontend preview.",
-              )
-            }
-          >
+          <Action onClick={generateMotion} disabled={busy}>
             <Sparkles size={15} /> Generate motion
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project before generating or saving animation.</DemoNotice>}
       <div className="animation-screen">
         <section className="animation-viewport">
           <div className="viewport-toolbar">
             <span>VIEWPORT / CAMERA</span>
-            <span>WALK CYCLE - TAKE 03</span>
+            <span>{animationName.toUpperCase()}</span>
           </div>
           <div className="viewport mesh-canvas">
             <div className="viewport-grid" />
@@ -950,11 +1053,7 @@ export function AnimationLab() {
         <div className="animation-bottom">
           <label>
             Animation clip
-            <select>
-              <option>Walk cycle - Take 03</option>
-              <option>Idle - Take 01</option>
-              <option>Turn - Take 02</option>
-            </select>
+            <input value={animationName} onChange={(event) => setAnimationName(event.target.value)} />
           </label>
           <label>
             Duration
@@ -968,7 +1067,7 @@ export function AnimationLab() {
               <option>60 fps</option>
             </select>
           </label>
-          <Action onClick={() => notify("Animation clip saved in demo state.")}>
+          <Action onClick={saveAnimation}>
             Save clip
           </Action>
         </div>
@@ -978,8 +1077,25 @@ export function AnimationLab() {
 }
 export function FilmLab() {
   const [shot, setShot] = useState(0);
+  const [sceneId, setSceneId] = useState("");
+  const [busy, setBusy] = useState(false);
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
   const shots = ["EXT. DUSK - WIDE", "INT. HALL - MEDIUM", "CLOSE - REACTION"];
+  useEffect(() => {
+    setSceneId("");
+    if (activeProject) productionApi.scenes(activeProject).then((response) => setSceneId(response.data[0]?.id || "")).catch((error) => notify(error.message, "error"));
+  }, [activeProject, notify]);
+  const saveScene = async () => {
+    if (!activeProject) throw new Error("Select a project first.");
+    const payload = { name: shots[shot], description: "Director's notes from the film workspace.", sceneOrder: shot, duration: 8, cameraSettings: { lens: 35 }, lightingSettings: { preset: "dusk" } };
+    const response = sceneId ? await productionApi.updateScene(sceneId, payload) : await productionApi.createScene(activeProject, payload);
+    setSceneId(response.data.id);
+    return response.data.id;
+  };
+  const saveSceneClick = async () => { setBusy(true); try { await saveScene(); notify("Scene saved.", "success"); } catch (error) { notify(error.message || "Could not save scene.", "error"); } finally { setBusy(false); } };
+  const generateScene = async () => { setBusy(true); try { const id = await saveScene(); const response = await productionApi.generateScene(id, {}); notify(`Scene generation queued: ${response.data.jobId}`, "success"); } catch (error) { notify(error.message || "Could not generate scene.", "error"); } finally { setBusy(false); } };
+  const renderScene = async () => { setBusy(true); try { const id = await saveScene(); const response = await productionApi.render(id, {}); notify(`Blender render queued: ${response.data.jobId}`, "success"); } catch (error) { notify(error.message || "Could not render scene.", "error"); } finally { setBusy(false); } };
   return (
     <>
       <PageTitle
@@ -987,23 +1103,19 @@ export function FilmLab() {
         title="Build the scene."
         description="Compose a sequence, track character continuity and prepare camera direction."
         action={
-          <Action
-            onClick={() =>
-              notify("Scene generation is not connected. No scene was created.")
-            }
-          >
+          <Action onClick={generateScene} disabled={busy}>
             <Sparkles size={15} /> Generate scene
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project to save scenes and queue Blender renders.</DemoNotice>}
       <div className="film-layout">
         <section className="story-editor">
           <div className="sequence-toolbar">
             <span>
               <Clapperboard size={15} /> SEQUENCE 01 / STORYBOARD
             </span>
-            <button onClick={() => notify("New shot is a demo action.")}>
+            <button onClick={saveSceneClick} disabled={busy || !activeProject}>
               <Plus size={14} /> Add shot
             </button>
           </div>
@@ -1058,10 +1170,12 @@ export function FilmLab() {
           </div>
           <Button
             variant="outline"
-            onClick={() => notify("Scene settings saved locally.")}
+            onClick={saveSceneClick}
+            disabled={busy || !activeProject}
           >
             Save scene
           </Button>
+          <Button onClick={renderScene} disabled={busy || !activeProject}>Render scene</Button>
         </aside>
       </div>
     </>
@@ -1069,22 +1183,35 @@ export function FilmLab() {
 }
 export function WorkflowEditor() {
   const [selected, setSelected] = useState(0);
+  const [workflow, setWorkflow] = useState([]);
+  const [busy, setBusy] = useState(false);
   const notify = useStudioStore((s) => s.notify);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const stageNames = ["image_upload", "image_analysis", "model_generation", "mesh_editing", "materials", "rigging"];
+  const loadWorkflow = () => activeProject ? productionApi.workflow(activeProject).then((response) => setWorkflow(response.data)) : (setWorkflow([]), Promise.resolve([]));
+  useEffect(() => { loadWorkflow().catch((error) => notify(error.message, "error")); }, [activeProject]);
+  const processStage = async (retry = false) => {
+    if (!activeProject) return notify("Select a project first.", "error");
+    setBusy(true);
+    try {
+      const stage = stageNames[selected];
+      if (retry) await productionApi.retryStage(activeProject, stage);
+      else await productionApi.approveStage(activeProject, stage);
+      await loadWorkflow();
+      notify(retry ? "Stage retry queued." : "Stage approved.", "success");
+    } catch (error) { notify(error.message || "Workflow update failed.", "error"); }
+    finally { setBusy(false); }
+  };
+  const nodeNames = ["Reference", "Analyze", "Generate model", "Mesh cleanup", "Character DNA", "Rig & animate"];
   return (
     <>
       <PageTitle
         eyebrow="VISUAL PRODUCTION GRAPH"
         title="Your workflow, in view."
         description="Explore stage relationships and keep the entire production path legible."
-        action={
-          <Action
-            onClick={() => notify("Workflow node creation is a demo action.")}
-          >
-            <Plus size={15} /> Add stage
-          </Action>
-        }
+        action={<Action onClick={() => loadWorkflow().catch((error) => notify(error.message, "error"))}><RotateCcw size={15} /> Refresh workflow</Action>}
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project to load its workflow stages.</DemoNotice>}
       <section className="workflow-editor">
         <div className="graph-toolbar">
           <span>
@@ -1132,9 +1259,7 @@ export function WorkflowEditor() {
             >
               <span>{t}</span>
               <b>{n}</b>
-              <small>
-                {i < 2 ? "READY" : i === 2 ? "IN PROGRESS" : "UP NEXT"}
-              </small>
+              <small>{workflow.find((stage) => stage.stageName === stageNames[i])?.status?.toUpperCase() || "PENDING"}</small>
             </button>
           ))}
         </div>
@@ -1142,23 +1267,12 @@ export function WorkflowEditor() {
           <span>SELECTED STAGE</span>
           <b>
             {
-              [
-                "Reference",
-                "Analyze",
-                "Generate model",
-                "Mesh cleanup",
-                "Character DNA",
-                "Rig & animate",
-              ][selected]
+              nodeNames[selected]
             }
           </b>
-          <p>
-            Stages remain reviewable. Processing and workflow persistence are
-            not connected.
-          </p>
-          <button onClick={() => notify("Stage settings are a demo.")}>
-            Configure stage <ArrowUpRight size={13} />
-          </button>
+          <p>{workflow.find((stage) => stage.stageName === stageNames[selected])?.status || "pending"} — stage status is saved to this project.</p>
+          <button onClick={() => processStage(false)} disabled={busy || !activeProject}>Approve stage <Check size={13} /></button>
+          <button onClick={() => processStage(true)} disabled={busy || !activeProject}>Retry stage <RotateCcw size={13} /></button>
         </div>
       </section>
     </>
@@ -1248,6 +1362,48 @@ export function Assistant() {
 }
 export function BlenderBridge() {
   const notify = useStudioStore((s) => s.notify);
+  const projects = useStudioStore((s) => s.projects);
+  const loadProjects = useStudioStore((s) => s.loadProjects);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const setActiveProject = useStudioStore((s) => s.setActiveProject);
+  const [projectId, setProjectId] = useState(activeProject || "");
+  const [format, setFormat] = useState("BLEND");
+  const [assets, setAssets] = useState([]);
+  const [sourceAssetId, setSourceAssetId] = useState("");
+  const [job, setJob] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { loadProjects().catch((error) => notify(error.message, "error")); }, [loadProjects, notify]);
+  useEffect(() => { if (!projectId && activeProject) setProjectId(activeProject); }, [activeProject, projectId]);
+  useEffect(() => {
+    if (!projectId) { setAssets([]); return; }
+    setActiveProject(projectId);
+    assetsApi.list(projectId).then((response) => setAssets(response.data.filter((asset) => ["model", "blender_project"].includes(asset.assetType)))).catch((error) => notify(error.message, "error"));
+  }, [projectId, setActiveProject, notify]);
+  useEffect(() => {
+    const jobId = job?.jobId || job?.id;
+    if (!jobId || !["queued", "pending", "processing"].includes(job.status)) return;
+    const timer = window.setInterval(() => jobsApi.get(jobId).then((response) => setJob(response.data)).catch((error) => notify(error.message, "error")), 2000);
+    return () => window.clearInterval(timer);
+  }, [job?.jobId, job?.id, job?.status, notify]);
+  const startExport = async () => {
+    if (!projectId) return notify("Create or select a project first.", "error");
+    setBusy(true);
+    try {
+      const response = await exportsApi.create(projectId, { format, sourceAssetId: sourceAssetId || undefined });
+      setJob(response.data);
+      notify("Blender export queued.", "success");
+    } catch (error) { notify(error.message || "Could not start Blender export.", "error"); }
+    finally { setBusy(false); }
+  };
+  const downloadResult = async () => {
+    if (!job?.output?.assetId) return;
+    try {
+      const blob = await assetsApi.download(job.output.assetId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a"); link.href = url; link.download = job.output.fileName || `export.${format.toLowerCase()}`; link.click(); URL.revokeObjectURL(url);
+    } catch (error) { notify(error.message || "Could not download the export.", "error"); }
+  };
+  const selectedProject = projects.find((project) => project.id === projectId);
   return (
     <>
       <PageTitle
@@ -1255,24 +1411,17 @@ export function BlenderBridge() {
         title="Your scene. Your tools."
         description="Prepare an editable Blender handoff and keep track of linked production assets."
         action={
-          <Action
-            onClick={() =>
-              notify("Blender is not connected. No project was exported.")
-            }
-          >
+          <Action onClick={startExport}>
             <ArrowDownToLine size={15} /> Export project
           </Action>
         }
       />
-      <DemoNotice>
-        Blender integration is a workflow preview. No local Blender process is
-        started.
-      </DemoNotice>
+      <p className="demo-notice">Exports run through the configured backend Blender worker. Job output is saved as a project asset.</p>
       <div className="blender-layout">
         <section className="blender-viewport">
           <div className="viewport-toolbar">
-            <span>SCENE / THE RED NOMAD</span>
-            <span>BLENDER PROJECT - V04</span>
+            <label>PROJECT <select value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">Select project</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+            <span>{selectedProject?.name || "NO PROJECT SELECTED"}</span>
           </div>
           <div className="viewport mesh-canvas">
             <div className="viewport-grid" />
@@ -1287,45 +1436,30 @@ export function BlenderBridge() {
           </div>
           <div className="export-settings">
             <span>EXPORT FORMAT</span>
-            {[".blend", ".glb", ".fbx", ".obj"].map((x, i) => (
+            {["BLEND", "GLB", "GLTF", "FBX", "OBJ"].map((x) => (
               <button
-                className={i === 0 ? "selected" : ""}
-                onClick={() => notify(`${x} selected for demo export.`)}
+                className={format === x ? "selected" : ""}
+                onClick={() => setFormat(x)}
                 key={x}
               >
-                {x}
+                .{x.toLowerCase()}
               </button>
             ))}
+            <label className="field-label">Source model<select value={sourceAssetId} onChange={(event) => setSourceAssetId(event.target.value)}><option value="">Use current Blender scene</option>{assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.fileName}</option>)}</select></label>
           </div>
         </section>
         <aside className="properties-panel">
           <Eyebrow>PROJECT PACKAGE</Eyebrow>
-          <h3>Scene_03.blend</h3>
-          <p>Editable scene with linked model, material and camera settings.</p>
-          {[
-            ["Character model", "nomad_character_v04.glb"],
-            ["Material set", "skin_clay_v02"],
-            ["Animation", "walk_cycle_take03.fbx"],
-            ["Camera", "scene_03_camera"],
-            ["Scene setup", "scene_03_lighting"],
-          ].map(([a, b]) => (
-            <div className="property-row file-property" key={a}>
-              <span>{a}</span>
-              <b>{b}</b>
-            </div>
-          ))}
+          <h3>{job?.output?.fileName || `${selectedProject?.name || "Project"}.${format.toLowerCase()}`}</h3>
+          <p>Export a Blender scene or interchange model from the selected source asset.</p>
           <div className="bridge-status">
-            <i /> Local Blender connection <b>Not connected</b>
+            <i /> Blender job <b>{job?.status || "Ready"}</b>
           </div>
-          <Button
-            onClick={() =>
-              notify(
-                "No export was made. Connect a backend Blender worker to enable this action.",
-              )
-            }
-          >
-            Prepare export
+          {job?.error?.message && <p role="alert">{job.error.message}</p>}
+          {job?.progress > 0 && <Progress value={job.progress} />}
+          {job?.output?.assetId ? <Button onClick={downloadResult}><Download size={14}/> Download export</Button> : <Button onClick={startExport} disabled={busy || !projectId}>{busy ? "Queuing..." : "Prepare export"}
           </Button>
+          }
         </aside>
       </div>
     </>
@@ -1334,11 +1468,28 @@ export function BlenderBridge() {
 export function Assets() {
   const [kind, setKind] = useState("All assets");
   const [query, setQuery] = useState("");
-  const visible = assets.filter(
-    (a) =>
-      (kind === "All assets" || a.kind === kind) &&
-      a.name.toLowerCase().includes(query.toLowerCase()),
-  );
+  const [rows, setRows] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const projects = useStudioStore((s) => s.projects);
+  const notify = useStudioStore((s) => s.notify);
+  const refresh = () => activeProject ? assetsApi.list(activeProject).then((response) => setRows(response.data)) : (setRows([]), Promise.resolve([]));
+  useEffect(() => { refresh().catch((error) => notify(error.message, "error")); }, [activeProject]);
+  const upload = async (event) => {
+    const file = event.target.files?.[0]; if (!file) return;
+    setBusy(true);
+    try { await assetsApi.upload(activeProject, file); await refresh(); notify("Asset uploaded.", "success"); }
+    catch (error) { notify(error.message || "Asset upload failed.", "error"); }
+    finally { event.target.value = ""; setBusy(false); }
+  };
+  const visible = rows.filter((asset) => {
+    const type = asset.assetType === "model" ? "3D Model" : asset.assetType === "texture" ? "Texture" : asset.assetType === "animation" ? "Animation" : asset.assetType === "render" ? "Render" : "Other";
+    return (kind === "All assets" || type === kind) && asset.fileName.toLowerCase().includes(query.toLowerCase());
+  });
+  const download = async (asset) => {
+    try { const blob = await assetsApi.download(asset.id); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = asset.fileName; link.click(); window.setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    catch (error) { notify(error.message || "Asset download failed.", "error"); }
+  };
   return (
     <>
       <PageTitle
@@ -1346,16 +1497,10 @@ export function Assets() {
         title="Assets"
         description="Find the source files and production outputs linked to your projects."
         action={
-          <Action
-            onClick={() =>
-              useStudioStore.getState().notify("Asset upload is not connected.")
-            }
-          >
-            <Upload size={15} /> Upload asset
-          </Action>
+          <label className="button">{busy ? "Uploading..." : <><Upload size={15} /> Upload asset</>}<input type="file" hidden disabled={busy || !activeProject} onChange={upload} /></label>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project before uploading or browsing its assets.</DemoNotice>}
       <div className="toolbar">
         <div className="filter-tabs">
           {["All assets", "3D Model", "Texture", "Animation", "Render"].map(
@@ -1381,109 +1526,97 @@ export function Assets() {
       </div>
       <Table
         columns={["ASSET", "TYPE", "FORMAT", "SIZE", "UPDATED", ""]}
-        rows={visible.map((a) => [
+        rows={visible.map((asset) => [
           <span className="asset-name">
             <FileImage size={16} />
-            {a.name}
+            {asset.fileName}
           </span>,
-          a.kind,
-          <span className="format-tag">{a.format}</span>,
-          a.size,
-          a.date,
+          asset.assetType,
+          <span className="format-tag">{asset.format}</span>,
+          `${(asset.fileSize / (1024 * 1024)).toFixed(1)} MB`,
+          asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : "—",
           <button
             className="table-icon"
-            onClick={() =>
-              useStudioStore
-                .getState()
-                .notify("Asset download is not connected.")
-            }
+            onClick={() => download(asset)}
           >
             <Download size={15} />
           </button>,
         ])}
       />
-      <div className="table-foot">
-        Showing {visible.length} assets <span>STORAGE USED: 6.8 GB</span>
-      </div>
+      <div className="table-foot">Showing {visible.length} assets <span>{projects.find((project) => project.id === activeProject)?.name || "NO PROJECT"}</span></div>
     </>
   );
 }
 export function Versions() {
-  const [selected, setSelected] = useState("v04");
+  const [selected, setSelected] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [busy, setBusy] = useState(false);
   const notify = useStudioStore((s) => s.notify);
-  const rows = [
-    ["v04", "Oct 30, 2026 at 14:32", "Texture approved", "Current"],
-    ["v03", "Oct 29, 2026 at 17:10", "Rig validation", "Saved"],
-    ["v02", "Oct 28, 2026 at 11:04", "Mesh cleanup", "Saved"],
-    ["v01", "Oct 26, 2026 at 09:22", "Initial model", "Saved"],
-  ];
+  const activeProject = useStudioStore((s) => s.activeProject);
+  const projects = useStudioStore((s) => s.projects);
+  const refresh = () => activeProject ? productionApi.versions(activeProject).then((response) => { setRows(response.data); setSelected((current) => current || response.data[0]?.id || null); }) : (setRows([]), Promise.resolve([]));
+  useEffect(() => { setSelected(null); refresh().catch((error) => notify(error.message, "error")); }, [activeProject]);
+  const saveVersion = async () => { if (!activeProject) return notify("Select a project first.", "error"); setBusy(true); try { const response = await productionApi.createVersion(activeProject, { description: "Manual checkpoint" }); setRows((current) => [response.data, ...current]); setSelected(response.data.id); notify("Version saved.", "success"); } catch (error) { notify(error.message || "Could not save version.", "error"); } finally { setBusy(false); } };
+  const restoreVersion = async () => { if (!selected) return; setBusy(true); try { await productionApi.restoreVersion(selected); notify("Project restored to the selected version.", "success"); } catch (error) { notify(error.message || "Could not restore version.", "error"); } finally { setBusy(false); } };
+  const chosen = rows.find((version) => version.id === selected);
   return (
     <>
       <PageTitle
-        eyebrow="PROJECT HISTORY / PRJ-042"
+        eyebrow={`PROJECT HISTORY / ${projects.find((project) => project.id === activeProject)?.name || "NO PROJECT"}`}
         title="Versions"
         description="Review saved checkpoints and understand how a project has evolved."
         action={
-          <Action
-            onClick={() =>
-              notify("Version snapshot saved to the demo activity.")
-            }
-          >
+          <Action onClick={saveVersion}>
             <Save size={15} /> Save version
           </Action>
         }
       />
-      <DemoNotice />
+      {!activeProject && <DemoNotice>Select a project to view and save its versions.</DemoNotice>}
       <div className="versions-layout">
         <div className="version-list">
-          {rows.map(([v, date, note, status]) => (
+          {rows.map((version) => (
             <button
-              key={v}
-              className={selected === v ? "version-selected" : ""}
-              onClick={() => setSelected(v)}
+              key={version.id}
+              className={selected === version.id ? "version-selected" : ""}
+              onClick={() => setSelected(version.id)}
             >
               <i className="version-dot" />
               <div>
                 <b>
-                  {v}{" "}
+                  v{String(version.versionNumber).padStart(2, "0")}{" "}
                   <span>
-                    {status === "Current" && (
-                      <Status tone="good">CURRENT</Status>
-                    )}
+                    {selected === version.id && <Status tone="good">SELECTED</Status>}
                   </span>
                 </b>
-                <small>{date}</small>
-                <p>{note}</p>
+                <small>{version.createdAt ? new Date(version.createdAt).toLocaleString() : ""}</small>
+                <p>{version.description || "Project checkpoint"}</p>
               </div>
               <ArrowUpRight size={15} />
             </button>
           ))}
         </div>
         <aside className="version-preview">
-          <Eyebrow>VERSION {selected.toUpperCase()}</Eyebrow>
-          <h3>{rows.find((x) => x[0] === selected)?.[2]}</h3>
+          <Eyebrow>{chosen ? `VERSION ${String(chosen.versionNumber).padStart(2, "0")}` : "NO VERSION SELECTED"}</Eyebrow>
+          <h3>{chosen?.description || "Project checkpoint"}</h3>
           <div className="version-art">
             <CharacterPreview />
           </div>
           <div className="property-row">
             <span>Project</span>
-            <b>The Red Nomad</b>
+            <b>{projects.find((project) => project.id === activeProject)?.name || "—"}</b>
           </div>
           <div className="property-row">
             <span>Saved by</span>
-            <b>Vedhas N.</b>
+            <b>Your account</b>
           </div>
           <div className="property-row">
             <span>Included assets</span>
-            <b>18 files</b>
+            <b>{chosen?.assetIds?.length || 0} files</b>
           </div>
           <Button
             variant="outline"
-            onClick={() =>
-              notify(
-                "Restore is a demo action. Your current project was not changed.",
-              )
-            }
+            onClick={restoreVersion}
+            disabled={!chosen || busy}
           >
             Restore this version
           </Button>
@@ -1601,140 +1734,75 @@ export function Billing() {
 export function Settings() {
   const [tab, setTab] = useState("Profile");
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [security, setSecurity] = useState({ current_password: "", new_password: "" });
   const notify = useStudioStore((s) => s.notify);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
   const tabs = ["Profile", "Preferences", "Security", "Notifications"];
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const form = new FormData(event.currentTarget);
+      const updated = await usersApi.updateProfile({ name: form.get("name") });
+      useAuthStore.getState().syncUser(updated.data);
+      setSaved(true);
+      notify("Profile saved.", "success");
+    } catch (error) {
+      notify(error.message || "Could not save profile.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const savePassword = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await usersApi.updatePassword(security);
+      await logout();
+      navigate("/login", { replace: true, state: { notice: "Password updated. Sign in again." } });
+    } catch (error) {
+      notify(error.message || "Could not update password.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const deleteAccount = async () => {
+    if (!window.confirm("Deactivate your account? You will be signed out.")) return;
+    setSaving(true);
+    try {
+      await usersApi.deleteAccount();
+      await logout();
+      navigate("/", { replace: true });
+    } catch (error) {
+      notify(error.message || "Could not deactivate account.", "error");
+      setSaving(false);
+    }
+  };
   return (
     <>
-      <PageTitle
-        eyebrow="WORKSPACE CONTROL"
-        title="Settings"
-        description="Manage your profile, studio preferences and account controls."
-      />
-      <DemoNotice />
+      <PageTitle eyebrow="WORKSPACE CONTROL" title="Settings" description="Manage your profile, studio preferences and account controls." />
       <div className="settings-layout">
-        <nav className="settings-tabs">
-          {tabs.map((x) => (
-            <button
-              className={tab === x ? "selected" : ""}
-              key={x}
-              onClick={() => setTab(x)}
-            >
-              {x}
-            </button>
-          ))}
-        </nav>
+        <nav className="settings-tabs">{tabs.map((x) => <button className={tab === x ? "selected" : ""} key={x} onClick={() => setTab(x)}>{x}</button>)}</nav>
         <section className="settings-panel">
           <Eyebrow>{tab.toUpperCase()}</Eyebrow>
           {tab === "Profile" ? (
-            <>
-              <h3>Profile details</h3>
-              <p>Update the information shown across your workspace.</p>
-              <div className="profile-edit">
-                <span className="avatar large">VN</span>
-                <button
-                  onClick={() =>
-                    notify("Profile photo upload is not connected.")
-                  }
-                >
-                  Change photo
-                </button>
-              </div>
-              <label className="field-label">
-                Display name
-                <input defaultValue="Vedhas N." />
-              </label>
-              <label className="field-label">
-                Email address
-                <input defaultValue="vedhas@example.com" type="email" />
-              </label>
-              <label className="field-label">
-                Workspace name
-                <input defaultValue="Atelier North" />
-              </label>
-            </>
+            <form onSubmit={saveProfile}>
+              <h3>Profile details</h3><p>Update the information shown across your workspace.</p>
+              <div className="profile-edit"><span className="avatar large">{(user?.name || "U").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span></div>
+              <label className="field-label">Display name<input name="name" defaultValue={user?.name || ""} minLength={2} maxLength={80} required /></label>
+              <label className="field-label">Email address<input value={user?.email || ""} type="email" disabled /></label>
+              <button className="button" type="submit" disabled={saving}>{saving ? "Saving..." : "Save profile"}<ArrowUpRight size={14} /></button>
+              {saved && <small className="saved-note">Profile saved to your account.</small>}
+            </form>
           ) : tab === "Preferences" ? (
-            <>
-              <h3>Studio preferences</h3>
-              <p>Set how your workspace is displayed.</p>
-              <label className="field-label">
-                Interface density
-                <select>
-                  <option>Comfortable</option>
-                  <option>Compact</option>
-                </select>
-              </label>
-              <label className="field-label">
-                Default project view
-                <select>
-                  <option>Grid</option>
-                  <option>List</option>
-                </select>
-              </label>
-              <ToggleRow
-                title="Reduce motion"
-                text="Limit interface movement and transitions."
-              />
-              <ToggleRow
-                title="Show production tips"
-                text="Display short workflow hints in the studio."
-              />
-            </>
+            <><h3>Studio preferences</h3><p>Set how your workspace is displayed.</p><label className="field-label">Interface density<select><option>Comfortable</option><option>Compact</option></select></label><label className="field-label">Default project view<select><option>Grid</option><option>List</option></select></label><ToggleRow title="Reduce motion" text="Limit interface movement and transitions."/><ToggleRow title="Show production tips" text="Display short workflow hints in the studio."/><button className="button" onClick={() => notify("Preferences are not saved because the account API does not support them yet.")}>Save preferences<ArrowUpRight size={14}/></button></>
           ) : tab === "Security" ? (
-            <>
-              <h3>Sign-in & security</h3>
-              <p>Authentication controls are not connected in this preview.</p>
-              <label className="field-label">
-                Current password
-                <input
-                  type="password"
-                  placeholder="Not available in demo"
-                  disabled
-                />
-              </label>
-              <label className="field-label">
-                New password
-                <input
-                  type="password"
-                  placeholder="Not available in demo"
-                  disabled
-                />
-              </label>
-              <ToggleRow
-                title="Two-factor authentication"
-                text="Add an extra verification step to sign in."
-              />
-            </>
+            <><h3>Sign-in &amp; security</h3><p>Change your password or deactivate your account.</p><form onSubmit={savePassword}><label className="field-label">Current password<input type="password" autoComplete="current-password" required value={security.current_password} onChange={(event) => setSecurity({ ...security, current_password: event.target.value })}/></label><label className="field-label">New password<input type="password" minLength={8} maxLength={128} autoComplete="new-password" required value={security.new_password} onChange={(event) => setSecurity({ ...security, new_password: event.target.value })}/></label><button className="button" type="submit" disabled={saving || security.new_password.length < 8}>{saving ? "Updating..." : "Update password"}<ArrowUpRight size={14}/></button></form><button className="button outline" onClick={deleteAccount} disabled={saving}>Deactivate account<ArrowUpRight size={14}/></button></>
           ) : (
-            <>
-              <h3>Notifications</h3>
-              <p>Choose which studio updates you would receive.</p>
-              <ToggleRow
-                title="Production status"
-                text="When a workflow stage changes status."
-              />
-              <ToggleRow
-                title="Project activity"
-                text="When collaborators update shared projects."
-              />
-              <ToggleRow
-                title="Product updates"
-                text="Occasional news about the studio."
-              />
-            </>
-          )}
-          <button
-            className="button"
-            onClick={() => {
-              setSaved(true);
-              notify("Settings saved locally for this demo session.");
-            }}
-          >
-            Save changes <ArrowUpRight size={14} />
-          </button>
-          {saved && (
-            <small className="saved-note">
-              Preferences saved for this session.
-            </small>
+            <><h3>Notifications</h3><p>Notification preferences are not available through the account API yet.</p><ToggleRow title="Production status" text="When a workflow stage changes status."/><ToggleRow title="Project activity" text="When collaborators update shared projects."/><ToggleRow title="Product updates" text="Occasional news about the studio."/></>
           )}
         </section>
       </div>

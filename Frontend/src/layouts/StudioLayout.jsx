@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -10,7 +10,7 @@ import {
   Settings2,
   X,
 } from "lucide-react";
-import { assets, navGroups, projects } from "../data";
+import { assets, navGroups } from "../data";
 import { Brand } from "./PublicLayout";
 import { Toast } from "../components/ui";
 import { useStudioStore } from "../store/useStudioStore";
@@ -22,10 +22,13 @@ export function StudioLayout() {
   const sidebarOpen = useStudioStore((s) => s.sidebarOpen);
   const toggleSidebar = useStudioStore((s) => s.toggleSidebar);
   const notify = useStudioStore((s) => s.notify);
+  const projects = useStudioStore((s) => s.projects);
+  const loadProjects = useStudioStore((s) => s.loadProjects);
   const logout = useAuthStore((s) => s.logout);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const loc = useLocation();
+  useEffect(() => { loadProjects().catch((error) => notify(error.message, "error")); }, [loadProjects, notify]);
   const query = search.trim().toLowerCase();
   const results = query
     ? [

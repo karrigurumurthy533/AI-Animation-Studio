@@ -78,6 +78,11 @@ POST /uploads/presigned-url
 
 POST /uploads/complete
 
+For local development, the presigned upload response points to a short-lived
+PUT /uploads/local/{uploadId} endpoint. The upload token is bound to the
+authenticated owner, project, file name, and declared file size. Production
+deployments should replace this local route with signed object-storage URLs.
+
 GET /assets/{assetId}
 
 DELETE /assets/{assetId}
@@ -206,6 +211,12 @@ Supported formats:
 - FBX
 - OBJ
 - MP4
+
+Processing jobs are pushed to the Redis `studio:jobs` queue. Run the separate
+local worker with `python -m app.worker` from `Backend`. Set
+`BLENDER_EXECUTABLE` and `STUDIO_STORAGE_DIR` for Blender jobs and local asset
+storage. Jobs for AI capabilities without a configured provider adapter end
+with `ADAPTER_NOT_CONFIGURED`.
 
 ## 16. Workflow APIs
 

@@ -16,3 +16,7 @@ async def ensure_indexes(db: AsyncDatabase) -> None:
     await db.jobs.create_index([("projectId", ASCENDING)], name="ix_jobs_project")
     await db.scenes.create_index([("projectId", ASCENDING), ("sceneOrder", ASCENDING)], name="ix_scenes_project_order")
     await db.projectVersions.create_index([("projectId", ASCENDING), ("versionNumber", ASCENDING)], unique=True, name="uq_versions_project_number")
+    await db.animations.create_index([("projectId", ASCENDING), ("createdAt", DESCENDING)], name="ix_animations_project_created")
+    await db.materials.create_index([("characterId", ASCENDING), ("createdAt", DESCENDING)], name="ix_materials_character_created")
+    await db.lighting.create_index([("projectId", ASCENDING), ("createdAt", DESCENDING)], name="ix_lighting_project_created")
+    await db.jobs.create_index([("userId", ASCENDING), ("createdAt", DESCENDING)], name="ix_jobs_user_created")

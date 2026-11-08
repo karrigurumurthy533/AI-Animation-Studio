@@ -1,13 +1,18 @@
-@"
 # AI Animation Studio
 
-An AI-powered 3D character creation, rigging, animation, and film production platform.
+AI powered 3D character creation, rigging, animation, and film production.
 
-## Project Documentation
+## Local development
 
-See the Docs folder for product requirements, architecture, database design, API documentation, UI/UX guidelines, and development roadmap.
+1. Install the Python dependencies from `Backend/requirements.txt` and the frontend dependencies from `Frontend/package-lock.json`.
+2. Copy `Backend/.env.example` to `Backend/.env` and configure MongoDB, Redis, and `BLENDER_EXECUTABLE`.
+3. Start MongoDB and Redis.
+4. From `Backend`, run the API with `uvicorn app.main:app --reload`.
+5. In a second `Backend` terminal, run the job worker with `python -m app.worker`.
+6. From `Frontend`, run `npm run dev`.
 
-## Development Status
+FastAPI docs are available at `/docs`. Production and AI processing require separately configured provider adapters and isolated workers; local Blender exports use the configured Blender executable and local storage directory.
 
-Frontend development is the first phase.
-"@ | Set-Content README.md
+## Project documentation
+
+See [Docs/FULL-WORKFLOW.md](Docs/FULL-WORKFLOW.md) for the end-to-end local workflow. The `Docs/` directory also contains product requirements, architecture, database design, API documentation, UI/UX guidelines, and roadmap.

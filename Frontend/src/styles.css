@@ -116,7 +116,7 @@ select:focus-visible {
   justify-content: center;
   gap: 15px;
   color: white;
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 700;
   transition: 0.2s;
 }
@@ -139,7 +139,7 @@ select:focus-visible {
   align-items: center;
   gap: 9px;
   color: #ddd;
-  font-size: 12.5px;
+  font-size: 14px;
   background: none;
   border: 0;
   padding: 0;
@@ -171,7 +171,7 @@ select:focus-visible {
 }
 .public-links a,
 .public-actions > a:not(.button) {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #aaa;
 }
 .public-links a:hover,
@@ -262,7 +262,7 @@ select:focus-visible {
   align-items: center;
   gap: 9px;
   color: #ddd;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .text-link:hover {
   color: var(--red);
@@ -466,7 +466,7 @@ select:focus-visible {
 .split-copy > p,
 .manifesto p,
 .contact-page > div > p {
-  font-size: 13.75px;
+  font-size: 15px;
   line-height: 1.9;
   color: #999;
   max-width: 360px;
@@ -498,12 +498,12 @@ select:focus-visible {
   display: block;
 }
 .showcase-stage > b {
-  font-size: 12.5px;
+  font-size: 14px;
   margin-top: 9px;
 }
 .showcase-stage > small {
   color: #888;
-  font-size: 10px;
+  font-size: 11px;
   margin-top: 4px;
 }
 .stage-art {
@@ -569,7 +569,7 @@ select:focus-visible {
 .section-title > p {
   max-width: 340px;
   color: #999;
-  font-size: 13.75px;
+  font-size: 15px;
   line-height: 1.85;
   margin-bottom: 3px;
 }
@@ -612,7 +612,7 @@ select:focus-visible {
   margin: 8px 0;
 }
 .feature-card p {
-  font-size: 11.25px;
+  font-size: 14px;
   line-height: 1.7;
   color: #999;
   max-width: 250px;
@@ -648,7 +648,7 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11.25px;
+  font-size: 14px;
   color: #bbb;
 }
 .check-list svg {
@@ -891,7 +891,7 @@ select:focus-visible {
   margin: 20px 0;
 }
 .home-cta p {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #999;
   margin-bottom: 22px;
 }
@@ -913,7 +913,7 @@ select:focus-visible {
   gap: 12px;
 }
 .footer-grid > div:first-child p {
-  font-size: 11.25px;
+  font-size: 14px;
   line-height: 1.8;
   color: #888;
   max-width: 230px;
@@ -926,7 +926,7 @@ select:focus-visible {
   margin-bottom: 3px;
 }
 .footer-grid > div > a:not(.brand):not(.button) {
-  font-size: 11.25px;
+  font-size: 14px;
   color: #aaa;
 }
 .footer-cta h3 {
@@ -971,7 +971,7 @@ select:focus-visible {
   width: 26%;
 }
 .page-hero-art .art-ident {
-  font-size: 7.5px;
+  font-size: 9px;
 }
 .page-hero h1 {
   font-size: clamp(58.75px, 6vw, 90px);
@@ -1001,7 +1001,7 @@ select:focus-visible {
   margin: 6px 0;
 }
 .how-steps article p {
-  font-size: 12.5px;
+  font-size: 14px;
   line-height: 1.7;
   color: #999;
   max-width: 510px;
@@ -1024,10 +1024,10 @@ select:focus-visible {
   width: 18px;
 }
 .notice-block b {
-  font-size: 13.75px;
+  font-size: 15px;
 }
 .notice-block p {
-  font-size: 11.25px;
+  font-size: 14px;
   color: #999;
   margin: 6px 0 0;
 }
@@ -1040,7 +1040,7 @@ select:focus-visible {
   justify-content: center;
   gap: 12px;
   color: #aaa;
-  font-size: 11.25px;
+  font-size: 14px;
   margin-bottom: 28px;
 }
 .billing-toggle button {
@@ -1099,7 +1099,7 @@ select:focus-visible {
   color: #888;
 }
 .plan-card p {
-  font-size: 11.25px;
+  font-size: 14px;
   line-height: 1.7;
   color: #999;
   min-height: 32px;
@@ -1116,7 +1116,7 @@ select:focus-visible {
   align-items: center;
   gap: 8px;
   color: #bbb;
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .plan-card li svg {
   color: var(--red);
@@ -1137,7 +1137,7 @@ select:focus-visible {
 .demo-caption {
   text-align: center;
   color: #777;
-  font-size: 11.25px;
+  font-size: 14px;
   margin-top: 20px;
 }
 .faq-section {
@@ -1170,7 +1170,7 @@ select:focus-visible {
   color: #777;
 }
 .faq-row button b {
-  font-size: 12.5px;
+  font-size: 14px;
   font-weight: 500;
 }
 .faq-row button svg {
@@ -1183,7 +1183,7 @@ select:focus-visible {
 .faq-row p {
   margin: 0 20px 17px 34px;
   color: #999;
-  font-size: 11.25px;
+  font-size: 14px;
   line-height: 1.8;
 }
 .manifesto {
@@ -1210,7 +1210,7 @@ select:focus-visible {
   gap: 9px;
   border-bottom: 1px solid #555;
   padding-bottom: 7px;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .contact-page form,
 .auth-page form {
@@ -1253,7 +1253,7 @@ select:focus-visible {
 }
 .contact-page form small,
 .auth-page form small {
-  font-size: 11.25px;
+  font-size: 14px;
   color: #f77;
 }
 .auth-page {
@@ -1283,20 +1283,20 @@ select:focus-visible {
   margin: 18px 0 9px;
 }
 .auth-page > div > p {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #999;
   margin-bottom: 25px;
 }
 .auth-page form > a {
   justify-self: end;
   color: #aaa;
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .auth-page form .button {
   justify-content: space-between;
 }
 .auth-switch {
-  font-size: 11.25px;
+  font-size: 14px;
   color: #888;
   margin-top: 18px;
 }
@@ -1339,7 +1339,7 @@ select:focus-visible {
   justify-content: space-between;
 }
 .sidebar-brand .brand {
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .sidebar-brand .brand-mark {
   width: 19px;
@@ -1376,7 +1376,7 @@ select:focus-visible {
   flex: 1;
 }
 .workspace-switch b {
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .workspace-switch span {
   color: #777;
@@ -1408,7 +1408,7 @@ select:focus-visible {
   gap: 10px;
   padding: 0 9px;
   color: #999;
-  font-size: 11.25px;
+  font-size: 14px;
   transition: 0.15s;
 }
 .nav-group a:hover {
@@ -1469,7 +1469,7 @@ select:focus-visible {
   justify-content: space-between;
   align-items: center;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .profile-row {
   width: 100%;
@@ -1498,11 +1498,11 @@ select:focus-visible {
   flex: 1;
 }
 .profile-row b {
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .profile-row small {
   color: #777;
-  font-size: 10px;
+  font-size: 11px;
 }
 .profile-row > svg {
   color: #888;
@@ -1521,7 +1521,7 @@ select:focus-visible {
 .profile-pop a {
   padding: 9px;
   color: #aaa;
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .profile-pop a:hover {
   background: #222;
@@ -1552,7 +1552,7 @@ select:focus-visible {
   border: 0;
   outline: 0;
   color: #ddd;
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .studio-search kbd {
   padding: 3px 5px;
@@ -1604,7 +1604,7 @@ select:focus-visible {
   background: none;
   border: 0;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .top-avatar {
   width: 25px;
@@ -1639,7 +1639,7 @@ select:focus-visible {
   margin: 10px 0 7px;
 }
 .page-title > div > p {
-  font-size: 11.25px;
+  font-size: 14px;
   color: #999;
   margin: 0;
 }
@@ -1654,7 +1654,7 @@ select:focus-visible {
   border: 1px solid #342620;
   background: #17110f;
   color: #b7a49a;
-  font-size: 10px;
+  font-size: 11px;
   margin-bottom: 19px;
 }
 .demo-notice svg {
@@ -1674,7 +1674,7 @@ select:focus-visible {
   align-items: center;
   gap: 9px;
   box-shadow: 0 10px 30px #0009;
-  font-size: 12.5px;
+  font-size: 14px;
   max-width: 360px;
 }
 .toast svg {
@@ -1703,7 +1703,7 @@ select:focus-visible {
   margin: 10px 0 4px;
 }
 .stat-card > small {
-  font-size: 10px;
+  font-size: 11px;
   color: #777;
 }
 .workspace-grid {
@@ -1721,7 +1721,7 @@ select:focus-visible {
 }
 .workspace-primary > .section-title .eyebrow,
 .aside-card .section-title .eyebrow {
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .project-grid {
   display: grid;
@@ -1804,7 +1804,7 @@ select:focus-visible {
   margin: 0 0 4px;
 }
 .project-info p {
-  font-size: 8.75px;
+  font-size: 11px;
   color: #888;
   margin: 0;
 }
@@ -1906,16 +1906,16 @@ select:focus-visible {
   gap: 4px;
 }
 .activity-list b {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .activity-list small {
-  font-size: 8.75px;
+  font-size: 11px;
   color: #777;
 }
 .storage-card > .eyebrow,
 .assistant-teaser > span {
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .storage-card > strong {
   display: block;
@@ -1930,14 +1930,14 @@ select:focus-visible {
   margin-bottom: 11px;
 }
 .storage-card > p {
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.7;
   color: #888;
 }
 .storage-card .button {
   width: 100%;
   min-height: 32px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .assistant-teaser > svg {
   color: var(--red);
@@ -1955,7 +1955,7 @@ select:focus-visible {
 }
 .assistant-teaser .button {
   min-height: 32px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .section-title {
   display: flex;
@@ -1972,7 +1972,7 @@ select:focus-visible {
 .section-title > p {
   max-width: 320px;
   color: #999;
-  font-size: 11.25px;
+  font-size: 14px;
   line-height: 1.7;
   margin: 0;
 }
@@ -1991,11 +1991,11 @@ select:focus-visible {
   gap: 5px;
 }
 .pipeline-header b {
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .pipeline-header span {
   color: #888;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .pipeline-steps {
   display: flex;
@@ -2010,7 +2010,7 @@ select:focus-visible {
   justify-items: center;
   gap: 7px;
   color: #666;
-  font-size: 7.5px;
+  font-size: 9px;
   white-space: nowrap;
 }
 .pipeline-steps > div:after {
@@ -2066,7 +2066,7 @@ select:focus-visible {
   font: 11.25px var(--mono);
 }
 .pipeline-footer .inline-link {
-  font-size: 10px;
+  font-size: 11px;
 }
 .tiny-action {
   background: none;
@@ -2075,7 +2075,7 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .tiny-action:hover {
   color: #fff;
@@ -2100,7 +2100,7 @@ select:focus-visible {
   border: 1px solid transparent;
   padding: 7px 9px;
   color: #888;
-  font-size: 10px;
+  font-size: 11px;
   white-space: nowrap;
 }
 .filter-tabs button:hover,
@@ -2123,7 +2123,7 @@ select:focus-visible {
   border: 0;
   outline: 0;
   color: #eee;
-  font-size: 10px;
+  font-size: 11px;
 }
 .table-wrap {
   overflow: auto;
@@ -2148,7 +2148,7 @@ td {
   padding: 12px 13px;
   border-top: 1px solid #292929;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 tbody tr:hover {
   background: #171717;
@@ -2201,7 +2201,7 @@ tbody tr:hover {
   margin: 12px 0 5px;
 }
 .empty-state p {
-  font-size: 11.25px;
+  font-size: 14px;
 }
 .lab-layout {
   display: grid;
@@ -2225,7 +2225,7 @@ tbody tr:hover {
   padding: 11px 8px;
   color: #999;
   border-bottom: 1px solid #242424;
-  font-size: 10px;
+  font-size: 11px;
 }
 .lab-stage > span {
   width: 17px;
@@ -2262,11 +2262,11 @@ tbody tr:hover {
 }
 .upload-zone b {
   color: #ccc;
-  font-size: 10px;
+  font-size: 11px;
 }
 .upload-zone span {
   color: #777;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .lab-main {
   min-width: 0;
@@ -2407,14 +2407,14 @@ tbody tr:hover {
   background: #c54e42;
 }
 .properties-panel > .eyebrow {
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .properties-panel h3 {
   font: 500 16.25px var(--display);
   margin: 12px 0 7px;
 }
 .properties-panel > p {
-  font-size: 10px;
+  font-size: 11px;
   color: #888;
   line-height: 1.7;
 }
@@ -2428,7 +2428,7 @@ tbody tr:hover {
 }
 .property-row span {
   color: #888;
-  font-size: 10px;
+  font-size: 11px;
 }
 .property-row b {
   font: 10px var(--mono);
@@ -2439,7 +2439,7 @@ tbody tr:hover {
   width: 100%;
   min-height: 33px;
   margin-top: 16px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .properties-panel hr {
   border: 0;
@@ -2508,7 +2508,7 @@ tbody tr:hover {
   border-right: 1px solid #2e2e2e;
 }
 .editor-tools .eyebrow {
-  font-size: 8.75px;
+  font-size: 11px;
   padding: 0 4px 10px;
 }
 .editor-tools button {
@@ -2522,7 +2522,7 @@ tbody tr:hover {
   background: none;
   color: #aaa;
   text-align: left;
-  font-size: 10px;
+  font-size: 11px;
 }
 .editor-tools button:hover {
   color: #fff;
@@ -2557,7 +2557,7 @@ tbody tr:hover {
   border: 1px solid transparent;
   background: none;
   color: #888;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .viewport-toolbar button.selected,
 .export-settings button.selected {
@@ -2603,7 +2603,7 @@ tbody tr:hover {
   gap: 8px;
   margin: 16px 0;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .range-label > b {
   font: 10px var(--mono);
@@ -2700,7 +2700,7 @@ tbody tr:hover {
   padding: 12px 0;
   border-block: 1px solid #292929;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .color-setting label {
   flex: 1;
@@ -2722,7 +2722,7 @@ tbody tr:hover {
   padding-top: 12px;
 }
 .texture-slot > .eyebrow {
-  font-size: 8.75px;
+  font-size: 11px;
   margin-bottom: 8px;
 }
 .texture-slot button {
@@ -2734,7 +2734,7 @@ tbody tr:hover {
   border-bottom: 1px solid #292929;
   background: none;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .texture-slot button span {
   display: flex;
@@ -2758,7 +2758,7 @@ tbody tr:hover {
 }
 .preset-row > .eyebrow {
   margin-right: 8px;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .preset-row > button {
   border: 1px solid #333;
@@ -2768,7 +2768,7 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .preset-row > button i {
   width: 12px;
@@ -2800,7 +2800,7 @@ tbody tr:hover {
   background: #171717;
   padding: 6px 9px;
   color: #aaa;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .switch-on {
   border-color: #783d34;
@@ -2822,7 +2822,7 @@ tbody tr:hover {
   border: 0;
   background: none;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .hierarchy {
   margin: 12px 0;
@@ -2840,7 +2840,7 @@ tbody tr:hover {
 }
 .hierarchy small {
   color: #686868;
-  font-size: 7.5px;
+  font-size: 9px;
 }
 .properties-panel > .progress {
   margin: 9px 0 14px;
@@ -2979,7 +2979,7 @@ tbody tr:hover {
 .animation-bottom input,
 .animation-bottom select {
   padding: 8px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .animation-bottom .button {
   min-height: 32px;
@@ -3015,7 +3015,7 @@ tbody tr:hover {
   border: 1px solid #444;
   padding: 6px;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .shot-grid {
   display: grid;
@@ -3111,7 +3111,7 @@ tbody tr:hover {
   border: 1px solid #303030;
   padding: 9px;
   color: #ccc;
-  font-size: 10px;
+  font-size: 11px;
 }
 .scene-consistency,
 .bridge-status {
@@ -3123,7 +3123,7 @@ tbody tr:hover {
   border: 1px solid #3a3327;
   background: #171612;
   color: #c9b88e;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .scene-consistency svg {
   color: #c6a963;
@@ -3215,7 +3215,7 @@ tbody tr:hover {
   font: 10px var(--mono);
 }
 .graph-properties p {
-  font-size: 8.75px;
+  font-size: 11px;
   color: #888;
   margin: 0;
   flex: 1;
@@ -3227,7 +3227,7 @@ tbody tr:hover {
   border: 0;
   background: none;
   color: #ccc;
-  font-size: 10px;
+  font-size: 11px;
 }
 .assistant-layout {
   display: grid;
@@ -3282,7 +3282,7 @@ tbody tr:hover {
   padding: 9px 11px;
   background: #191615;
   color: #ccc;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.8;
 }
 .chat-message.user {
@@ -3303,7 +3303,7 @@ tbody tr:hover {
   border: 1px solid #3b3331;
   background: #151313;
   color: #aaa;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .prompt-chips button:hover {
   border-color: #894238;
@@ -3321,7 +3321,7 @@ tbody tr:hover {
   background: #0b0b0b;
   border: 1px solid #353535;
   color: #ddd;
-  font-size: 10px;
+  font-size: 11px;
 }
 .chat-input button {
   width: 32px;
@@ -3340,7 +3340,7 @@ tbody tr:hover {
   padding: 10px 0;
   border-bottom: 1px solid #292929;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .reference-row span {
   color: #a9584c;
@@ -3424,7 +3424,7 @@ tbody tr:hover {
 }
 .version-list > button > div > p {
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
   margin: 0;
 }
 .version-list > button > svg {
@@ -3480,14 +3480,14 @@ tbody tr:hover {
 }
 .current-plan p,
 .payment-card p {
-  font-size: 10px;
+  font-size: 11px;
   color: #888;
   margin: 0;
 }
 .current-plan .button,
 .payment-card .button {
   min-height: 32px;
-  font-size: 10px;
+  font-size: 11px;
 }
 .billing-main > .section-title {
   margin: 25px 0 12px;
@@ -3522,7 +3522,7 @@ tbody tr:hover {
   color: #888;
 }
 .billing-plans article > p {
-  font-size: 8.75px;
+  font-size: 11px;
   color: #888;
 }
 .billing-plans article > button {
@@ -3531,7 +3531,7 @@ tbody tr:hover {
   border: 1px solid #484848;
   background: #111;
   color: #bbb;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .billing-plans article.chosen > button {
   border-color: #a33b31;
@@ -3562,7 +3562,7 @@ tbody tr:hover {
   margin-bottom: 8px;
 }
 .usage-item b {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .usage-item span {
@@ -3573,7 +3573,7 @@ tbody tr:hover {
   color: #777;
 }
 .usage-card > p {
-  font-size: 8.75px;
+  font-size: 11px;
   line-height: 1.7;
   color: #777;
   margin-top: 24px;
@@ -3594,7 +3594,7 @@ tbody tr:hover {
   background: none;
   border: 1px solid transparent;
   color: #999;
-  font-size: 10px;
+  font-size: 11px;
 }
 .settings-tabs button:hover,
 .settings-tabs button.selected {
@@ -3608,14 +3608,14 @@ tbody tr:hover {
   background: #111;
 }
 .settings-panel > .eyebrow {
-  font-size: 8.75px;
+  font-size: 11px;
 }
 .settings-panel > h3 {
   font: 500 18.75px var(--display);
   margin: 14px 0 6px;
 }
 .settings-panel > p {
-  font-size: 10px;
+  font-size: 11px;
   color: #888;
   margin-bottom: 17px;
 }
@@ -3631,14 +3631,14 @@ tbody tr:hover {
 .avatar.large {
   width: 37px;
   height: 37px;
-  font-size: 12.5px;
+  font-size: 14px;
 }
 .profile-edit button {
   border: 1px solid #444;
   background: #171717;
   padding: 7px 9px;
   color: #bbb;
-  font-size: 10px;
+  font-size: 11px;
 }
 .toggle-row {
   display: flex;
@@ -3652,11 +3652,11 @@ tbody tr:hover {
   gap: 5px;
 }
 .toggle-row b {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 .toggle-row small {
-  font-size: 8.75px;
+  font-size: 11px;
   color: #888;
 }
 .switch {
@@ -3689,7 +3689,7 @@ tbody tr:hover {
 .saved-note {
   margin-left: 10px;
   color: #b9a078;
-  font-size: 8.75px;
+  font-size: 11px;
 }
 /* Responsive behavior */
 @media (max-width: 1100px) {
@@ -3734,7 +3734,7 @@ tbody tr:hover {
   }
   .public-links a,
   .public-actions > a:not(.button) {
-    font-size: 11.25px;
+    font-size: 14px;
   }
   .studio-shell {
     grid-template-columns: 190px minmax(0, 1fr);
@@ -3852,12 +3852,12 @@ tbody tr:hover {
     gap: 12px;
   }
   .public-actions > a:not(.button) {
-    font-size: 11.25px;
+    font-size: 14px;
   }
   .public-actions .button {
     min-height: 32px;
     padding: 0 10px;
-    font-size: 10px;
+    font-size: 11px;
   }
   .hero {
     height: auto;
@@ -3892,7 +3892,7 @@ tbody tr:hover {
   .hero-meta {
     margin-top: 37px;
     gap: 13px;
-    font-size: 7.5px;
+    font-size: 9px;
   }
   .hero-index {
     bottom: 7%;
@@ -3933,7 +3933,7 @@ tbody tr:hover {
     font-size: 16.25px;
   }
   .feature-card p {
-    font-size: 10px;
+    font-size: 11px;
   }
   .section-title {
     display: block;
@@ -3963,10 +3963,10 @@ tbody tr:hover {
     row-gap: 22px;
   }
   .workflow-step > b {
-    font-size: 7.5px;
+    font-size: 9px;
   }
   .workflow-strip > .inline-link {
-    font-size: 11.25px;
+    font-size: 14px;
   }
   .page-hero {
     min-height: 370px;
@@ -4097,7 +4097,7 @@ tbody tr:hover {
   .page-title > .button {
     min-height: 34px;
     padding: 0 9px;
-    font-size: 10px;
+    font-size: 11px;
     gap: 7px;
   }
   .page-title > .button svg {
@@ -4149,7 +4149,7 @@ tbody tr:hover {
     display: inline-flex;
     border: 0;
     padding: 8px;
-    font-size: 8.75px;
+    font-size: 11px;
   }
   .lab-stage:not(.current) {
     display: none;
@@ -4185,7 +4185,7 @@ tbody tr:hover {
     justify-content: center;
     border: 1px solid #333;
     padding: 7px;
-    font-size: 8.75px;
+    font-size: 11px;
   }
   .editor-tools button svg {
     width: 13px;
@@ -4234,7 +4234,7 @@ tbody tr:hover {
     padding: 5px;
   }
   .shot-card > b {
-    font-size: 7.5px;
+    font-size: 9px;
   }
   .graph-canvas {
     height: 350px;
@@ -4310,7 +4310,7 @@ tbody tr:hover {
     max-width: 100%;
   }
   .table-foot {
-    font-size: 7.5px;
+    font-size: 9px;
   }
 }
 @media (max-width: 390px) {
@@ -4318,7 +4318,7 @@ tbody tr:hover {
     display: none;
   }
   .brand {
-    font-size: 11.25px;
+    font-size: 14px;
   }
   .hero {
     min-height: 720px;
@@ -4330,7 +4330,7 @@ tbody tr:hover {
     gap: 8px;
   }
   .hero-meta span {
-    font-size: 7.5px;
+    font-size: 9px;
   }
   .project-grid,
   .project-grid-wide {
@@ -4349,7 +4349,7 @@ tbody tr:hover {
     font-size: 15px;
   }
   .feature-card p {
-    font-size: 8.75px;
+    font-size: 11px;
   }
   .page-title > .button {
     font-size: 0;
@@ -4394,7 +4394,7 @@ tbody tr:hover {
   margin: 18px 0 9px;
 }
 .auth-panel > p {
-  font-size: 12.5px;
+  font-size: 14px;
   color: #999;
   margin-bottom: 25px;
 }
@@ -4436,10 +4436,10 @@ tbody tr:hover {
 .forgot-link {
   justify-self: end;
   color: #aaa;
-  font-size: 10px;
+  font-size: 11px;
 }
 .auth-switch {
-  font-size: 11.25px !important;
+  font-size: 14px !important;
   color: #888 !important;
   margin: 18px 0 0 !important;
 }
@@ -4460,7 +4460,7 @@ tbody tr:hover {
   color: #ff8175 !important;
   border: 0 !important;
   padding: 0 !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
   margin: 0 !important;
 }
 .auth-art {
@@ -4539,7 +4539,7 @@ tbody tr:hover {
   gap: 10px;
   padding: 10px;
   border-bottom: 1px solid #292929;
-  font-size: 10px;
+  font-size: 11px;
   color: #ddd;
 }
 .search-results > a:hover {
@@ -4577,5 +4577,40 @@ tbody tr:hover {
   letter-spacing: 0.08em;
   background: #111;
 }
-.auth-loading{min-height:100vh;display:grid;place-items:center;background:#080808;color:#aaa;font: 12.5px var(--mono);letter-spacing:.1em}.password-page{min-height:590px;padding:70px 20px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#35171466,transparent 55%),#090909}.password-card{width:min(420px,100%);border:1px solid #333;background:#111;padding:30px}.password-card h1{font: 500 37.5px/1.1 var(--display);letter-spacing:-.05em;margin:17px 0 10px}.password-card>p,.password-success p{font-size: 12.5px;color:#999;line-height:1.8}.password-card form{display:grid;gap:14px;margin-top:21px}.password-card label{display:grid;gap:7px;color:#aaa;font: 10px var(--mono)}.password-card input{padding:11px;background:#090909;border:1px solid #343434;color:#eee;font: 12.5px Manrope,sans-serif}.password-card label small,.password-card form>small{color:#f77;font-size: 10px}.password-card .button{width:100%;justify-content:space-between}.password-back{display:block;margin-top:18px;color:#aaa;font-size: 11.25px}.password-success{margin-top:20px}
-.profile-pop button{padding:9px;border:0;background:none;text-align:left;color:#aaa;font-size: 11.25px}.profile-pop button:hover{background:#222;color:#fff}
+.auth-loading{min-height:100vh;display:grid;place-items:center;background:#080808;color:#aaa;font: 12.5px var(--mono);letter-spacing:.1em}.password-page{min-height:590px;padding:70px 20px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#35171466,transparent 55%),#090909}.password-card{width:min(420px,100%);border:1px solid #333;background:#111;padding:30px}.password-card h1{font: 500 37.5px/1.1 var(--display);letter-spacing:-.05em;margin:17px 0 10px}.password-card>p,.password-success p{font-size: 14px;color:#999;line-height:1.8}.password-card form{display:grid;gap:14px;margin-top:21px}.password-card label{display:grid;gap:7px;color:#aaa;font: 10px var(--mono)}.password-card input{padding:11px;background:#090909;border:1px solid #343434;color:#eee;font: 12.5px Manrope,sans-serif}.password-card label small,.password-card form>small{color:#f77;font-size: 11px}.password-card .button{width:100%;justify-content:space-between}.password-back{display:block;margin-top:18px;color:#aaa;font-size: 14px}.password-success{margin-top:20px}
+.profile-pop button{padding:9px;border:0;background:none;text-align:left;color:#aaa;font-size: 14px}.profile-pop button:hover{background:#222;color:#fff}
+
+.project-create-form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 18px 0;
+  padding: 20px;
+  border: 1px solid #303030;
+  background: #111;
+}
+.project-create-form .field-label {
+  flex: 1 1 220px;
+}
+.project-create-form .button {
+  flex: 0 0 auto;
+}
+
+.settings-panel form {
+  display: grid;
+  gap: 14px;
+}
+.settings-panel form .field-label {
+  max-width: 360px;
+}
+.settings-panel form h3 {
+  font: 500 18.75px var(--display);
+  margin: 14px 0 0;
+}
+.settings-panel form p {
+  font-size: 11px;
+  color: #888;
+  margin: 0 0 3px;
+}
+

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { authApi } from "../services/api";
 import { clearAccessToken, setAccessToken } from "../services/session";
+import { useStudioStore } from "./useStudioStore";
 
 let restoreTask;
 export const useAuthStore = create((set) => ({
@@ -19,6 +20,7 @@ export const useAuthStore = create((set) => ({
         set({ user: current.data, status: "authenticated", error: null });
       } catch {
         clearAccessToken();
+        useStudioStore.getState().clearProjects();
         set({ user: null, status: "anonymous", error: null });
       } finally {
         restoreTask = null;
@@ -29,6 +31,7 @@ export const useAuthStore = create((set) => ({
   login: async (payload) => {
     const response = await authApi.login(payload);
     setAccessToken(response.data.access_token);
+    useStudioStore.getState().clearProjects();
     set({ user: response.data.user, status: "authenticated", error: null });
     return response.data.user;
   },
@@ -36,17 +39,20 @@ export const useAuthStore = create((set) => ({
     const { confirmPassword, ...request } = payload;
     const response = await authApi.register(request);
     setAccessToken(response.data.access_token);
+    useStudioStore.getState().clearProjects();
     set({ user: response.data.user, status: "authenticated", error: null });
     return response.data.user;
   },
   logout: async () => {
     try { await authApi.logout(); } finally {
       clearAccessToken();
+      useStudioStore.getState().clearProjects();
       set({ user: null, status: "anonymous", error: null });
     }
   },
   expire: () => {
     clearAccessToken();
+    useStudioStore.getState().clearProjects();
     set({ user: null, status: "anonymous", error: null });
   },
   syncUser: (user) => set({ user, status: "authenticated" }),

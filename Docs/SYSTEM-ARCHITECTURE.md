@@ -200,6 +200,10 @@ The Blender integration should support:
 
 Local Blender integration and remote Blender workers must be treated as separate execution modes.
 
+In local development, the API writes job IDs to the Redis `studio:jobs` queue. Run `python -m app.worker` from `Backend` to consume queued jobs. Set `BLENDER_EXECUTABLE` to the Blender 5 binary and `STUDIO_STORAGE_DIR` to a writable asset directory. The local worker supports project saves, model interchange exports, still renders, animation renders, and basic mesh operations. Production workers must add process isolation, resource limits, remote object storage, and cancellation of active Blender processes.
+
+AI operations also use the queue. Until an AI adapter is configured for an operation, its job finishes with `ADAPTER_NOT_CONFIGURED`; the API does not report placeholder output as a successful generation.
+
 ## 11. Security Architecture
 
 - JWT authentication.
