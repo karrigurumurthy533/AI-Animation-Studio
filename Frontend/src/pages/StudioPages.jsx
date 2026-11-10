@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Activity,
@@ -44,6 +44,8 @@ import { stages } from "../data";
 import { useStudioStore } from "../store/useStudioStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { assetsApi, exportsApi, jobsApi, productionApi, usersApi } from "../services/api";
+import { API_BASE_URL } from "../constants/app";
+import { getAccessToken } from "../services/session";
 const CharacterViewport = lazy(
   () => import("../components/CharacterViewport.jsx"),
 );
@@ -119,8 +121,13 @@ function Stat({ label, value, delta }) {
 }
 function ProjectTile({ project }) {
   const setProject = useStudioStore((s) => s.setActiveProject);
+  const navigate = useNavigate();
+  const openProject = () => {
+    setProject(project.id);
+    navigate(`/studio/character?projectId=${encodeURIComponent(project.id)}`);
+  };
   return (
-    <button className="project-tile" onClick={() => setProject(project.id)}>
+    <button className="project-tile" onClick={openProject}>
       <div className={`project-thumb thumb-${project.image}`}>
         <div className="tile-figure" />
         <span>{project.id}</span>
@@ -357,10 +364,22 @@ export function Projects() {
 }
 export function CharacterLab() {
   const notify = useStudioStore((s) => s.notify);
-  const activeProject = useStudioStore((s) => s.activeProject);
+  const storedProject = useStudioStore((s) => s.activeProject);
+  const setActiveProject = useStudioStore((s) => s.setActiveProject);
+  const [searchParams] = useSearchParams();
+  const routeProject = searchParams.get("projectId");
+  const activeProject = routeProject || storedProject;
   const [tab, setTab] = useState("Reference");
   const [references, setReferences] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [generation, setGeneration] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [generatedModelUrl, setGeneratedModelUrl] = useState(null);
+  const generationGuard = useRef(false);
+  const isGenerating = generation && ["starting", "queued", "pending", "processing"].includes(generation.status);
+  useEffect(() => {
+    if (routeProject) setActiveProject(routeProject);
+  }, [routeProject, setActiveProject]);
   useEffect(() => {
     setReferences([]);
     if (!activeProject) return;
@@ -372,8 +391,94 @@ export function CharacterLab() {
       })
       .catch((error) => notify(error.message, "error"));
   }, [activeProject, notify]);
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl;
+    const image = references[0];
+    if (image?.id) {
+      assetsApi.download(image.id).then((response) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(response);
+        setImagePreview(objectUrl);
+      }).catch((error) => notify(error.message || "Image preview could not be loaded.", "error"));
+    } else if (!image) {
+      setImagePreview(null);
+    }
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [references, notify]);
+  useEffect(() => () => {
+    if (imagePreview?.startsWith("blob:")) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
+  useEffect(() => () => {
+    if (generatedModelUrl?.startsWith("blob:")) URL.revokeObjectURL(generatedModelUrl);
+  }, [generatedModelUrl]);
+  useEffect(() => {
+    const jobId = generation?.jobId;
+    if (!jobId || !["queued", "pending", "processing"].includes(generation.status)) return;
+    let stopped = false;
+    let reader;
+    const consumeEvents = async () => {
+      try {
+        const token = getAccessToken();
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/events`, {
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!response.ok || !response.body) throw new Error("Could not connect to generation progress.");
+        reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        while (!stopped) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          let boundary;
+          while ((boundary = buffer.indexOf("\n\n")) >= 0) {
+            const frame = buffer.slice(0, boundary);
+            buffer = buffer.slice(boundary + 2);
+            const dataLine = frame.split(/\r?\n/).find((line) => line.startsWith("data: "));
+            if (!dataLine) continue;
+            const job = JSON.parse(dataLine.slice(6));
+            setGeneration({ jobId, status: job.status, progress: job.progress || 0, provider: job.provider === "adapter" ? null : job.provider, error: job.error?.message });
+            if (["completed", "failed", "cancelled"].includes(job.status)) {
+              stopped = true;
+              generationGuard.current = false;
+              if (job.status === "completed" && job.output?.assetId) {
+                const file = await assetsApi.download(job.output.assetId);
+                const url = URL.createObjectURL(file);
+                setGeneratedModelUrl(url);
+                setTab("Model preview");
+                notify(`3D model generated with ${job.output.provider || "AI"}.`, "success");
+              } else if (job.status === "failed") {
+                notify(job.error?.message || "Model generation failed.", "error");
+              }
+              await reader.cancel();
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        if (!stopped) {
+          generationGuard.current = false;
+          setGeneration({ jobId, status: "failed", progress: 0 });
+          notify(error.message || "Could not read model generation progress.", "error");
+        }
+      }
+    };
+    consumeEvents();
+    return () => { stopped = true; reader?.cancel(); };
+  }, [generation?.jobId, notify]);
   const uploadReference = async (event) => {
     const file = event.target.files?.[0]; if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      notify("Choose an image smaller than 20 MB.", "error");
+      event.target.value = "";
+      return;
+    }
+    setImagePreview(URL.createObjectURL(file));
+    setGeneratedModelUrl(null);
+    setGeneration(null);
+    generationGuard.current = false;
     setBusy(true);
     try {
       const response = await assetsApi.upload(activeProject, file);
@@ -386,53 +491,49 @@ export function CharacterLab() {
     catch (error) { notify(error.message || "Reference upload failed.", "error"); }
     finally { event.target.value = ""; setBusy(false); }
   };
-  const analyzeReference = async () => {
-    if (!activeProject || !references[0]) return notify("Upload a reference image first.", "error");
-    try { const response = await productionApi.analyze(activeProject, { assetId: references[0].id }); notify(`Image analysis queued: ${response.data.jobId}`, "success"); }
-    catch (error) { notify(error.message || "Could not queue image analysis.", "error"); }
-  };
   const generateModel = async () => {
+    if (generationGuard.current) return;
     if (!activeProject) return notify("Select a project first.", "error");
-    setBusy(true);
-    try { const character = await ensureCharacter(activeProject, "Studio character"); const response = await productionApi.generateModel(activeProject, { characterId: character.id, referenceAssetIds: references.map((asset) => asset.id) }); notify(`Model generation queued: ${response.data.jobId}`, "success"); }
-    catch (error) { notify(error.message || "Could not queue model generation.", "error"); }
-    finally { setBusy(false); }
+    if (!references.length) return notify("Upload a reference image before generating a model.", "error");
+    generationGuard.current = true;
+    setGeneratedModelUrl(null);
+    setGeneration({ status: "starting", progress: 0 });
+    try {
+      const character = await ensureCharacter(activeProject, "Studio character");
+      const response = await productionApi.generateModel(activeProject, { characterId: character.id, referenceAssetIds: references.map((asset) => asset.id) });
+      setGeneration({ jobId: response.data.jobId, status: "queued", progress: 0 });
+      notify("Model generation started.", "info");
+    } catch (error) {
+      generationGuard.current = false;
+      setGeneration({ status: "failed", progress: 0 });
+      notify(error.message || "Could not queue model generation.", "error");
+    }
   };
   return (
     <>
       <PageTitle
-        eyebrow="CHARACTER LAB / PRJ-042"
-        title="Shape a character."
-        description="Move from reference to editable model while keeping the character's defining features in view."
-        action={
-          <Action onClick={generateModel}>
-            <Sparkles size={15} /> Generate model
-          </Action>
-        }
+        eyebrow="3D MODEL CREATION"
+        title="Create a 3D model."
+        description="Upload a reference image, then generate an editable 3D model for this project."
       />
       {!activeProject && <DemoNotice>Select a project before uploading references or generating a model.</DemoNotice>}
-      <div className="lab-layout">
+      {generation?.status === "failed" && generation.error && <DemoNotice>{generation.error}</DemoNotice>}
+      <div className="lab-layout model-creation-layout">
         <aside className="lab-sidebar">
-          <Eyebrow>PRODUCTION STAGES</Eyebrow>
-          {stages.slice(0, 5).map((x, i) => (
-            <div className={`lab-stage ${i === 0 ? "current" : ""}`} key={x}>
-              <span>{i < 2 ? <Check size={12} /> : `0${i + 1}`}</span>
-              <b>{x}</b>
-              {i === 0 && <small>ACTIVE</small>}
-            </div>
-          ))}
           <label className="upload-zone">
-            <Upload size={18} />
-            <b>{busy ? "Uploading..." : references[0]?.fileName || "Add reference image"}</b>
+            {imagePreview ? <img className="upload-image-preview" src={imagePreview} alt="Uploaded reference preview" /> : <Upload size={18} />}
+            <b>{busy ? "Uploading..." : references[0]?.fileName || "Upload reference image"}</b>
             <span>PNG, JPG - up to 20 MB</span>
-            <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy || !activeProject} onChange={uploadReference} />
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden disabled={busy || isGenerating || !activeProject} onChange={uploadReference} />
           </label>
-          <Button variant="outline" onClick={analyzeReference} disabled={!references.length}>Analyze reference</Button>
+          <Action onClick={generateModel} disabled={busy || isGenerating || !references.length || !activeProject}>
+            <Sparkles size={15} /> {isGenerating ? "Generating..." : "Generate model"}
+          </Action>
         </aside>
         <section className="lab-main">
           <div className="lab-toolbar">
             <div className="filter-tabs">
-              {["Reference", "Model preview", "Character DNA"].map((x) => (
+              {["Reference", "Model preview"].map((x) => (
                 <button
                   className={tab === x ? "selected" : ""}
                   onClick={() => setTab(x)}
@@ -446,16 +547,15 @@ export function CharacterLab() {
               <RotateCcw size={14} /> Reset view
             </TinyAction>
           </div>
-          <div className="viewport">
+          <div className={`viewport ${isGenerating ? "model-generating" : ""}`}>
             <div className="viewport-grid" />
+            {isGenerating && <div className="generation-overlay" role="status" aria-live="polite"><span className="generation-orb" /><b>{generation.status === "queued" ? "Waiting for the generation worker" : "Generating your 3D model"}</b><span>{generation.provider ? `Using ${generation.provider}` : generation.status === "queued" ? "Queued" : "Preparing AI providers"} · {generation.progress || 0}%</span><div className="generation-progress"><i style={{ width: `${generation.progress || 8}%` }} /></div></div>}
             <div className="viewport-axis">
               <i>X</i>
               <i>Y</i>
               <i>Z</i>
             </div>
-            {tab === "Character DNA" ? (
-              <DnaPanel />
-            ) : tab === "Model preview" ? (
+            {tab === "Model preview" ? (
               <Suspense
                 fallback={
                   <div className="viewport-loading">
@@ -463,8 +563,10 @@ export function CharacterLab() {
                   </div>
                 }
               >
-                <CharacterViewport />
+                <CharacterViewport modelUrl={generatedModelUrl} />
               </Suspense>
+            ) : imagePreview ? (
+              <img className="viewport-reference-image" src={imagePreview} alt="Uploaded reference" />
             ) : (
               <CharacterPreview />
             )}
@@ -488,38 +590,6 @@ export function CharacterLab() {
             <span>100%</span>
           </div>
         </section>
-        <aside className="properties-panel">
-          <Eyebrow>CHARACTER DNA</Eyebrow>
-          <h3>The Red Nomad</h3>
-          <p>Appearance settings carry across production stages.</p>
-          {[
-            ["Silhouette", "Athletic"],
-            ["Body proportions", "Long torso"],
-            ["Primary palette", "Ember / clay"],
-            ["Signature detail", "Left cheek mark"],
-            ["Reference fidelity", "High"],
-          ].map(([k, v]) => (
-            <div className="property-row" key={k}>
-              <span>{k}</span>
-              <b>{v}</b>
-            </div>
-          ))}
-          <div className="swatches">
-            <i />
-            <i />
-            <i />
-            <i />
-            <i />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() =>
-              notify("Character settings saved locally for this demo session.")
-            }
-          >
-            Save changes
-          </Button>
-        </aside>
       </div>
     </>
   );
@@ -532,24 +602,6 @@ function CharacterPreview() {
       <div className="preview-leg l" />
       <div className="preview-leg r" />
       <div className="preview-light" />
-    </div>
-  );
-}
-function DnaPanel() {
-  return (
-    <div className="dna-panel">
-      {[
-        ["SILHOUETTE", "ATHLETIC"],
-        ["PROPORTIONS", "LONG TORSO"],
-        ["COLOR PALETTE", "EMBER / CLAY"],
-        ["DISTINCTIVE FEATURE", "CHEEK MARK"],
-        ["REFERENCE FIDELITY", "HIGH"],
-      ].map(([x, y]) => (
-        <div key={x}>
-          <span>{x}</span>
-          <b>{y}</b>
-        </div>
-      ))}
     </div>
   );
 }

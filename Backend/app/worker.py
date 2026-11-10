@@ -9,9 +9,21 @@ from bson import ObjectId
 from app.core.security import utc_now
 from app.db.session import close_resources, connect_resources
 from app.services.blender import run_blender_job
+from app.services.model_generation import run_model_generation
 
 logger = logging.getLogger("animation-studio-worker")
 STAGES = {"image_upload", "image_analysis", "model_generation", "mesh_editing", "materials", "rigging", "animation", "lighting", "rendering", "export"}
+
+
+async def _requeue_orphaned_jobs(db, redis) -> None:
+    queued = set(await redis.lrange("studio:jobs", 0, -1))
+    processing = set(await redis.lrange("studio:jobs:processing", 0, -1))
+    cursor = db.jobs.find({"status": "queued"}, {"_id": 1})
+    async for job in cursor:
+        job_id = str(job["_id"])
+        if job_id not in queued and job_id not in processing:
+            await redis.lpush("studio:jobs", job_id)
+            logger.warning("Requeued orphaned job %s", job_id)
 
 
 async def _run_adapter(db, job: dict) -> None:
@@ -32,9 +44,14 @@ async def serve() -> None:
         for job_id in abandoned:
             await app.state.redis.lrem("studio:jobs:processing", 1, job_id)
             await app.state.redis.lpush("studio:jobs", job_id)
+        await _requeue_orphaned_jobs(app.state.db, app.state.redis)
+        next_reconcile = asyncio.get_running_loop().time() + 30
         while True:
             job_id = await app.state.redis.brpoplpush("studio:jobs", "studio:jobs:processing", timeout=5)
             if job_id is None:
+                if asyncio.get_running_loop().time() >= next_reconcile:
+                    await _requeue_orphaned_jobs(app.state.db, app.state.redis)
+                    next_reconcile = asyncio.get_running_loop().time() + 30
                 continue
             try:
                 job = await app.state.db.jobs.find_one({"_id": ObjectId(job_id), "status": "queued"})
@@ -42,6 +59,8 @@ async def serve() -> None:
                     continue
                 if job.get("provider") == "blender":
                     await run_blender_job(app.state.db, job_id)
+                elif job.get("jobType") == "model_generation":
+                    await run_model_generation(app.state.db, job_id)
                 else:
                     await _run_adapter(app.state.db, job)
             except Exception:

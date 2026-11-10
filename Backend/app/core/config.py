@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     password_reset_minutes: int = Field(default=30, ge=5, le=120)
     auth_cookie_secure: bool = False
     auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    meshy_api_key: SecretStr | None = None
+    tripo_api_key: SecretStr | None = None
+    rodin_api_key: SecretStr | None = None
+    model_provider_order: str = "meshy,tripo,rodin"
+    rodin_tier: str = "Gen-2.5-Low"
+    run_worker_in_api: bool | None = None
     smtp_host: str | None = None
     smtp_port: int = 1025
     smtp_username: str | None = None

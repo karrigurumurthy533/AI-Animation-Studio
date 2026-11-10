@@ -8,7 +8,7 @@ AI powered 3D character creation, rigging, animation, and film production.
 2. Copy `Backend/.env.example` to `Backend/.env` and configure MongoDB, Redis, and `BLENDER_EXECUTABLE`.
 3. Start MongoDB and Redis.
 4. From `Backend`, run the API with `uvicorn app.main:app --reload`.
-5. In a second `Backend` terminal, run the job worker with `python -m app.worker`.
+5. In development, the API starts a local queue worker automatically. Set `RUN_WORKER_IN_API=false` to disable it and run `python -m app.worker` in a second `Backend` terminal instead.
 6. From `Frontend`, run `npm run dev`.
 
 FastAPI docs are available at `/docs`. Production and AI processing require separately configured provider adapters and isolated workers; local Blender exports use the configured Blender executable and local storage directory.

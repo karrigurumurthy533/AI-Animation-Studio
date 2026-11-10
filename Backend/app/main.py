@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import asyncio
 import logging
 
 from fastapi import FastAPI, Request
@@ -22,9 +23,23 @@ logger = logging.getLogger("animation-studio-api")
 async def lifespan(app: FastAPI):
     await connect_resources(app)
     logger.info("Connected to MongoDB and Redis")
+    run_worker = settings.run_worker_in_api
+    if run_worker is None:
+        run_worker = settings.app_env == "development"
+    worker_task = None
+    if run_worker:
+        from app.worker import serve
+        worker_task = asyncio.create_task(serve(), name="local-job-worker")
+        logger.info("Started the local job worker inside the API process")
     try:
         yield
     finally:
+        if worker_task is not None:
+            worker_task.cancel()
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
         await close_queue()
         await close_resources(app)
 

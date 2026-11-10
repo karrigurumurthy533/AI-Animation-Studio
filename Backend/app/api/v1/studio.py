@@ -1,5 +1,6 @@
 """Project production APIs: assets, jobs, workflow, scenes, Blender, and metadata."""
 
+import asyncio
 import secrets
 import json
 from pathlib import Path
@@ -7,7 +8,7 @@ from typing import Annotated, Any
 
 from bson import ObjectId
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pymongo.asynchronous.database import AsyncDatabase
 from redis.asyncio import Redis
 
@@ -17,6 +18,7 @@ from app.core.security import utc_now
 from app.db.dependencies import get_db, get_redis
 from app.services.blender import STORAGE_ROOT
 from app.services.queue import enqueue_job
+from app.services.tripo_diagnostics import diagnose_tripo
 
 router = APIRouter(tags=["Production"])
 DB = Annotated[AsyncDatabase, Depends(get_db)]
@@ -25,6 +27,12 @@ STAGES = ["image_upload", "image_analysis", "model_generation", "mesh_editing", 
 STATUS = {"pending", "queued", "processing", "completed", "failed", "cancelled"}
 FORMATS = {"BLEND", "GLB", "GLTF", "FBX", "OBJ", "MP4"}
 MAX_UPLOAD = 100 * 1024 * 1024
+
+
+@router.get("/providers/tripo/diagnostics")
+async def tripo_provider_diagnostics(user: CurrentUser):
+    """Check the configured Tripo key using its non-generative account endpoint."""
+    return ok("Tripo connectivity diagnostic completed", await diagnose_tripo())
 
 
 def oid(value: str, kind: str = "RESOURCE") -> ObjectId:
@@ -273,6 +281,14 @@ async def generate_model(project_id: str, body: dict, background: BackgroundTask
         reference_ids = [str(asset_id) for asset_id in reference_oids]
         await db.characters.update_one({"_id": character["_id"]}, {"$set": {"referenceImages": reference_ids, "updatedAt": utc_now()}})
         payload["referenceAssetIds"] = reference_ids
+    reference_ids = payload.get("referenceAssetIds", [])
+    if reference_ids:
+        existing = await db.jobs.find_one(
+            {"projectId": project["_id"], "userId": user["_id"], "jobType": "model_generation", "status": {"$in": ["queued", "pending", "processing"]}, "input.referenceAssetIds": reference_ids},
+            sort=[("createdAt", -1)],
+        )
+        if existing:
+            return ok("Model generation already active", {"jobId": str(existing["_id"]), "status": existing["status"], "progress": existing.get("progress", 0)})
     job = await create_job(db, user, project, "model_generation", payload, background)
     return ok("Model generation queued", job)
 
@@ -601,6 +617,27 @@ async def list_jobs(user: CurrentUser, db: DB, status: str | None = None, projec
 @router.get("/jobs/{job_id}")
 async def get_job(job_id: str, user: CurrentUser, db: DB):
     return ok("Job loaded", public(await resource(db, "jobs", job_id, user)))
+
+
+@router.get("/jobs/{job_id}/events")
+async def stream_job(job_id: str, user: CurrentUser, db: DB):
+    job = await resource(db, "jobs", job_id, user)
+
+    async def events():
+        last_payload = None
+        while True:
+            current = await db.jobs.find_one({"_id": job["_id"], "userId": user["_id"]})
+            if current is None:
+                break
+            payload = json.dumps(public(current), separators=(",", ":"))
+            if payload != last_payload:
+                yield f"data: {payload}\n\n"
+                last_payload = payload
+            if current.get("status") in {"completed", "failed", "cancelled"}:
+                break
+            await asyncio.sleep(2)
+
+    return StreamingResponse(events(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @router.post("/jobs/{job_id}/cancel")

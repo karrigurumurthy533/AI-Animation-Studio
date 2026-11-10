@@ -25,7 +25,7 @@ The API requires MongoDB and Redis. Blender operations also require Blender 5 to
    uvicorn app.main:app --reload
    ```
 
-5. In a second `Backend` terminal, start the Redis queue worker:
+5. In development, the API starts the Redis queue worker automatically. To run it separately, set `RUN_WORKER_IN_API=false` and start this command in a second `Backend` terminal:
 
    ```powershell
    python -m app.worker
@@ -154,7 +154,7 @@ The current implementation writes files under `STUDIO_STORAGE_DIR`. It is intend
 | Symptom | Check |
 |---|---|
 | Character returns `referenceImages: []` | Refresh Character Lab so it reloads project images, then generate again. The current frontend and backend save the uploaded asset IDs on generation. |
-| Job remains queued | Confirm Redis is running and `python -m app.worker` is active from `Backend`. |
+| Job remains queued | Confirm Redis is running, restart the API after configuration changes, and either leave `RUN_WORKER_IN_API` enabled or start `python -m app.worker` separately. |
 | Job says `ADAPTER_NOT_CONFIGURED` | Add and configure an AI provider adapter for that job type. |
 | Blender job says `BLENDER_NOT_CONFIGURED` | Set `BLENDER_EXECUTABLE` to Blender 5 or add Blender to `PATH`, then restart the worker. |
 | Asset metadata loads but file download fails | Check that the file still exists under `STUDIO_STORAGE_DIR` and that the API process can read it. |

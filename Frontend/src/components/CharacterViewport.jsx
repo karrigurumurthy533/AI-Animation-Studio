@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, useGLTF } from "@react-three/drei";
 
 function CharacterModel() {
   return (
@@ -56,7 +56,12 @@ function CharacterModel() {
   );
 }
 
-export default function CharacterViewport() {
+function GeneratedModel({ url }) {
+  const gltf = useGLTF(url);
+  return <primitive object={gltf.scene} />;
+}
+
+export default function CharacterViewport({ modelUrl }) {
   return (
     <div
       className="character-viewport-3d"
@@ -76,7 +81,7 @@ export default function CharacterViewport() {
           color="#e84b3e"
           distance={8}
         />
-        <CharacterModel />
+        {modelUrl ? <GeneratedModel url={modelUrl} /> : <CharacterModel />}
         <OrbitControls
           enablePan={false}
           minDistance={3.4}
